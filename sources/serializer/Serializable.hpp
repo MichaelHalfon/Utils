@@ -23,7 +23,7 @@ namespace mutils
     };
 
     template<typename Derivate, size_t ...I, typename ...MemberPointers>
-    void    printAttrs(std::ostream &os, const Derivate &obj, std::index_sequence<>, std::tuple<MemberPointers...> &tuple)
+    void    printAttrs(std::ostream &, const Derivate &, std::index_sequence<>, std::tuple<MemberPointers...> &)
     {}
 
     template<typename Derivate, size_t I, size_t ...Rest, typename ...MemberPointers>
@@ -61,6 +61,7 @@ namespace mutils
         friend std::ostream     &operator<<(std::ostream &os, Derivate const &obj)
         {
             obj._impl->serialize(os, obj);
+            return (os);
         }
     private:
         std::shared_ptr< IBaseImpl<Derivate> >        _impl;
