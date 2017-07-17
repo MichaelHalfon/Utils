@@ -1,6 +1,6 @@
 #include "serializer/Serializable.hpp"
 
-class A : public mutils::Serializable<A>
+class A : public mutils::Serializable<A, mutils::out::DebugOutput>
 {
 
 public:
@@ -12,9 +12,9 @@ private:
 
 };
 
-int	main()
+int                     main()
 {
-    A   obj;
+    A                   obj;
 
     std::cout << obj << std::endl;
     return 0;
