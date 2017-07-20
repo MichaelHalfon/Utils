@@ -22,9 +22,9 @@ namespace mutils
     template<typename OutputPolicy, typename Derivate, size_t I, size_t ...Rest, typename ...MemberPointers>
     void    printAttrs(std::ostream &os, const Derivate &obj, std::index_sequence<I, Rest...>, std::tuple<MemberPointers...> &tuple)
     {
-        auto memberPointer = std::get<I>(tuple);
+        auto tupleElem = std::get<I>(tuple);
 
-        OutputPolicy::serializeMember(os, obj.*memberPointer);
+        OutputPolicy::serializeMember(os, obj, tupleElem);
         printAttrs<OutputPolicy>(os, obj, std::index_sequence<Rest...>(), tuple);
     }
 

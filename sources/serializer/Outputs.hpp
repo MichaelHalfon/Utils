@@ -11,20 +11,24 @@ namespace mutils
     {
         struct DefaultOutput
         {
-            template<typename Member>
-            static void    serializeMember(std::ostream &os, const Member &member)
+            template<typename Derivate, typename Member>
+            static void    serializeMember(std::ostream &os, const Derivate &obj, const Member &memberInfo)
             {
-                os << member << std::endl;
+                auto memberPtr = std::get<1>(memberInfo);
+                os << obj.*memberPtr << std::endl;
             }
         };
 
         struct DebugOutput
         {
-            template<typename Member>
-            static void    serializeMember(std::ostream &os, const Member &member)
+            template<typename Derivate, typename Member>
+            static void    serializeMember(std::ostream &os, const Derivate &obj, const Member &memberInfo)
             {
-                std::cout << "Pushing: " << member << " of size: " << sizeof(member) << std::endl;
-                os << member << std::endl;
+                std::string memberName = std::get<0>(memberInfo);
+                auto memberPtr = std::get<1>(memberInfo);
+
+                std::cout << "Pushing " << memberName << ": " << obj.*memberPtr << " of size: " << sizeof(obj.*memberPtr) << std::endl;
+                os << obj.*memberPtr << std::endl;
             }
         };
     }
