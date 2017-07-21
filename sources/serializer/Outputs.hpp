@@ -40,6 +40,19 @@ namespace mutils
 
         bool DebugOutput::firstTime = true;
     }
+    namespace in
+    {
+        struct DefaultInput
+        {
+            template<typename Derivate, typename Member>
+            static void    deserializeMember(std::istream &is, Derivate &obj, Member &memberInfo)
+            {
+                auto memberPtr = std::get<1>(memberInfo);
+
+                is >> obj.*memberPtr;
+            }
+        };
+    }
 }
 
 #endif //MUTILS_OUTPUTS_HPP

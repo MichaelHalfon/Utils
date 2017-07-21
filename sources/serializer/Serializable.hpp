@@ -13,6 +13,7 @@ namespace mutils
     struct IBaseImpl
     {
         virtual void serialize(std::ostream &, const Derivate &) = 0;
+        virtual void deserialize(std::istream &, Derivate &) = 0;
     };
 
     template<typename OutputPolicy, typename Derivate, typename ...MemberPointers>
@@ -36,6 +37,19 @@ namespace mutils
         printAttrs<OutputPolicy>(os, obj, std::index_sequence<Second, Rest...>(), tuple);
     }
 
+    template<typename Derivate, typename ...MemberPointers>
+    void    receiveAttrs(std::istream &, Derivate &, std::index_sequence<>, std::tuple<MemberPointers...> &)
+    {}
+
+    template<typename Derivate, size_t I, size_t ...Rest, typename ...MemberPointers>
+    void    receiveAttrs(std::istream &is, Derivate &obj, std::index_sequence<I, Rest...>, std::tuple<MemberPointers...> &tuple)
+    {
+        auto tupleElem = std::get<I>(tuple);
+
+        mutils::in::DefaultInput::deserializeMember(is, obj, tupleElem);
+        receiveAttrs(is, obj, std::index_sequence<Rest...>(), tuple);
+    }
+
     template<typename Derivate, typename OutputPolicy = mutils::out::DefaultOutput>
     class Serializable
     {
@@ -50,6 +64,11 @@ namespace mutils
             {
                 printAttrs<OutputPolicy>(os, obj, std::index_sequence_for<MemberPointers...>(), this->_tuple);
             }
+
+            void    deserialize(std::istream &is, Derivate &obj)
+            {
+                receiveAttrs(is, obj, std::index_sequence_for<MemberPointers...>(), this->_tuple);
+            }
             std::tuple<MemberPointers...>       _tuple;
         };
 
@@ -63,6 +82,12 @@ namespace mutils
         {
             obj._impl->serialize(os, obj);
             return (os);
+        }
+
+        friend std::istream     &operator>>(std::istream &is, Derivate &obj)
+        {
+            obj._impl->deserialize(is, obj);
+            return (is);
         }
 
     private:
