@@ -15,17 +15,25 @@ namespace mutils
         virtual void serialize(std::ostream &, const Derivate &) = 0;
     };
 
-    template<typename OutputPolicy, typename Derivate, size_t ...I, typename ...MemberPointers>
+    template<typename OutputPolicy, typename Derivate, typename ...MemberPointers>
     void    printAttrs(std::ostream &, const Derivate &, std::index_sequence<>, std::tuple<MemberPointers...> &)
     {}
 
-    template<typename OutputPolicy, typename Derivate, size_t I, size_t ...Rest, typename ...MemberPointers>
-    void    printAttrs(std::ostream &os, const Derivate &obj, std::index_sequence<I, Rest...>, std::tuple<MemberPointers...> &tuple)
+    template<typename OutputPolicy, typename Derivate, size_t I, typename ...MemberPointers>
+    void    printAttrs(std::ostream &os, const Derivate &obj, std::index_sequence<I>, std::tuple<MemberPointers...> &tuple)
     {
         auto tupleElem = std::get<I>(tuple);
 
-        OutputPolicy::serializeMember(os, obj, tupleElem);
-        printAttrs<OutputPolicy>(os, obj, std::index_sequence<Rest...>(), tuple);
+        OutputPolicy::serializeMember(os, obj, tupleElem, true);
+    }
+
+    template<typename OutputPolicy, typename Derivate, size_t I, size_t Second, size_t ...Rest, typename ...MemberPointers>
+    void    printAttrs(std::ostream &os, const Derivate &obj, std::index_sequence<I, Second, Rest...>, std::tuple<MemberPointers...> &tuple)
+    {
+        auto tupleElem = std::get<I>(tuple);
+
+        OutputPolicy::serializeMember(os, obj, tupleElem, false);
+        printAttrs<OutputPolicy>(os, obj, std::index_sequence<Second, Rest...>(), tuple);
     }
 
     template<typename Derivate, typename OutputPolicy = mutils::out::DefaultOutput>
@@ -60,7 +68,6 @@ namespace mutils
     private:
         std::shared_ptr< IBaseImpl<Derivate> >        _impl;
     };
-
 }
 
 #endif //MUTILS_SERIALIZABLE_HPP
