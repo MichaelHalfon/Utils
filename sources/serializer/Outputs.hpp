@@ -13,7 +13,6 @@ namespace mutils
                 auto memberPtr = std::get<1>(memberInfo);
                 os << obj.*memberPtr << std::endl;
             }
-            static bool firstTime;
         };
 
         struct DebugOutput
@@ -38,8 +37,52 @@ namespace mutils
             static bool firstTime;
         };
 
+
+        struct JSONOutput
+        {
+            template<typename Derivate, typename Member>
+            static void    serializeMember(std::ostream &os, const Derivate &obj, const Member &memberInfo, bool lastMember)
+            {
+                std::string memberName = std::get<0>(memberInfo);
+                auto memberPtr = std::get<1>(memberInfo);
+
+                if (JSONOutput::firstTime)
+                {
+                    os << "{" << std::endl;
+                    JSONOutput::firstTime = false;
+                }
+                else
+                    os << "\"" << memberName << "\"" << ":";
+                JSONOutput::memberHandler(os, obj.*memberPtr);
+                if (lastMember)
+                    os << "}" << std::endl;
+            }
+
+            template<typename MemberType>
+            static void    memberHandler(std::ostream &os, const MemberType &member)
+            {
+                os << member << std::endl;
+            }
+
+            static bool firstTime;
+        };
+
         bool DebugOutput::firstTime = true;
+        bool JSONOutput::firstTime = true;
+
+        template <>
+        void    JSONOutput::memberHandler<std::string>(std::ostream &os, std::string const &member)
+        {
+            os << "\"" << member << "\"" << std::endl;
+        }
+
+//        template <typename Derivate>
+//        inline void    JSONOutput::memberHandler<Derivate>(std::ostream &os, Derivate const &member)
+//        {
+//            os << "\"" << member << "\"" << std::endl;
+//        }
     }
+
     namespace in
     {
         struct DefaultInput
