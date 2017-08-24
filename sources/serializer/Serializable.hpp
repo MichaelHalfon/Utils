@@ -9,6 +9,8 @@
 
 namespace mutils
 {
+    static unsigned int                         nbSerialized = 0;
+
     template<typename Derivate>
     struct IBaseImpl
     {
@@ -16,9 +18,9 @@ namespace mutils
         virtual void deserialize(std::istream &, Derivate &) = 0;
     };
 
-    template<typename OutputPolicy, typename Derivate, typename ...MemberPointers>
-    void    printAttrs(std::ostream &, const Derivate &, std::index_sequence<>, std::tuple<MemberPointers...> &)
-    {}
+//    template<typename OutputPolicy, typename Derivate, typename ...MemberPointers>
+//    void    printAttrs(std::ostream &, const Derivate &, std::index_sequence<>, std::tuple<MemberPointers...> &)
+//    {}
 
     template<typename OutputPolicy, typename Derivate, size_t I, typename ...MemberPointers>
     void    printAttrs(std::ostream &os, const Derivate &obj, std::index_sequence<I>, std::tuple<MemberPointers...> &tuple)
@@ -26,6 +28,12 @@ namespace mutils
         auto tupleElem = std::get<I>(tuple);
 
         OutputPolicy::serializeMember(os, obj, tupleElem, true);
+        mutils::out::JSONOutput::indentation--;
+        if (!mutils::out::JSONOutput::inVector)
+            os << std::endl << std::string(mutils::out::JSONOutput::indentation, '\t') << "}" << std::endl;
+        else
+            os << "}";
+        mutils::out::JSONOutput::firstTime = true;
     }
 
     template<typename OutputPolicy, typename Derivate, size_t I, size_t Second, size_t ...Rest, typename ...MemberPointers>
@@ -69,7 +77,7 @@ namespace mutils
             {
                 receiveAttrs(is, obj, std::index_sequence_for<MemberPointers...>(), this->_tuple);
             }
-            std::tuple<MemberPointers...>       _tuple;
+            std::tuple<MemberPointers...>               _tuple;
         };
 
     public:
@@ -80,7 +88,21 @@ namespace mutils
 
         friend std::ostream     &operator<<(std::ostream &os, Derivate const &obj)
         {
+            static bool         begin = true;
+
+            if (begin && !mutils::out::JSONOutput::inVector)
+            {
+                begin = false;
+                os << "{ " << std::endl;
+            }
+            if (mutils::out::JSONOutput::inVector)
+                mutils::out::JSONOutput::firstTime = true;
+            mutils::out::JSONOutput::indentation++;
+            mutils::nbSerialized++;
             obj._impl->serialize(os, obj);
+            if (mutils::nbSerialized == 1)
+                os << "}" << std::endl;
+            mutils::nbSerialized--;
             return (os);
         }
 
@@ -91,7 +113,7 @@ namespace mutils
         }
 
     private:
-        std::shared_ptr< IBaseImpl<Derivate> >        _impl;
+        std::shared_ptr< IBaseImpl<Derivate> >      _impl;
     };
 }
 

@@ -46,41 +46,78 @@ namespace mutils
                 std::string memberName = std::get<0>(memberInfo);
                 auto memberPtr = std::get<1>(memberInfo);
 
-                if (JSONOutput::firstTime)
+                if (!JSONOutput::inVector)
+                    os << std::string(indentation, '\t');
+                if (JSONOutput::inVector && JSONOutput::firstTime)
                 {
-                    os << "{" << std::endl;
-                    JSONOutput::firstTime = false;
+                    os << std::endl << std::string(indentation, '\t') << "{";
+                }
+                else if (JSONOutput::firstTime)
+                {
+                    mutils::out::JSONOutput::indentation++;
+                    JSONOutput::memberHandler(os, obj.*memberPtr);
+                    os << ":" << " {" << std::endl;
                 }
                 else
-                    os << "\"" << memberName << "\"" << ":";
-                JSONOutput::memberHandler(os, obj.*memberPtr);
-                if (lastMember)
-                    os << "}" << std::endl;
+                {
+                    os << "\"" << memberName << "\":";
+                    JSONOutput::memberHandler(os, obj.*memberPtr);
+                }
+                if (!lastMember && !JSONOutput::firstTime)
+                {
+                    if (!JSONOutput::inVector)
+                        os << "," << std::endl;
+                    else
+                        os << ", ";
+                }
+                JSONOutput::firstTime = false;
             }
 
             template<typename MemberType>
             static void    memberHandler(std::ostream &os, const MemberType &member)
             {
-                os << member << std::endl;
+                os << member;
             }
 
-            static bool firstTime;
+            template<typename MemberType>
+            static void    memberHandler(std::ostream &os, const std::vector<MemberType> &member)
+            {
+                JSONOutput::inVector = true;
+                os << "[";
+                for (auto it = member.begin(); it != member.end(); it++)
+                {
+                    memberHandler(os, (*it));
+                    if (it + 1 != member.end())
+                        os << ", ";
+                }
+                JSONOutput::inVector = false;
+                JSONOutput::firstTime = false;
+                os << "]";
+            }
+
+
+            static bool         firstTime;
+            static bool         inVector;
+            static unsigned int indentation;
         };
 
         bool DebugOutput::firstTime = true;
         bool JSONOutput::firstTime = true;
+        bool JSONOutput::inVector = false;
+        unsigned int JSONOutput::indentation = 0;
 
         template <>
         void    JSONOutput::memberHandler<std::string>(std::ostream &os, std::string const &member)
         {
-            os << "\"" << member << "\"" << std::endl;
+            os << "\"" << member << "\"";
         }
 
-//        template <typename Derivate>
-//        inline void    JSONOutput::memberHandler<Derivate>(std::ostream &os, Derivate const &member)
-//        {
-//            os << "\"" << member << "\"" << std::endl;
-//        }
+        template <>
+        void    JSONOutput::memberHandler<bool>(std::ostream &os, bool const &member)
+        {
+            os << ((member)? "true" : "false");
+        }
+
     }
 
     namespace in
@@ -88,11 +125,11 @@ namespace mutils
         struct DefaultInput
         {
             template<typename Derivate, typename Member>
-            static void    deserializeMember(std::istream &is, Derivate &obj, Member &memberInfo)
+            static void    deserializeMember(std::istream &, Derivate &, Member &)
             {
-                auto memberPtr = std::get<1>(memberInfo);
-
-                is >> obj.*memberPtr;
+//                auto memberPtr = std::get<1>(memberInfo);
+//
+//                is >> obj.*memberPtr;
             }
         };
     }
