@@ -1,6 +1,8 @@
 #ifndef MUTILS_OUTPUTS_HPP
 #define MUTILS_OUTPUTS_HPP
 
+#include <regex>
+
 namespace mutils
 {
     namespace out
@@ -90,9 +92,12 @@ namespace mutils
                     if (it + 1 != member.end())
                         os << ", ";
                 }
+                if (JSONOutput::firstTime == false)
+                    os << "]";
+                else
+                    os << std::endl << std::string(indentation, '\t') << "]";
                 JSONOutput::inVector = false;
                 JSONOutput::firstTime = false;
-                os << "]";
             }
 
 
@@ -124,14 +129,63 @@ namespace mutils
     {
         struct DefaultInput
         {
-            template<typename Derivate, typename Member>
-            static void    deserializeMember(std::istream &, Derivate &, Member &)
+            static bool        verifyRegexOccurrence(std::string str, std::regex reg)
             {
-//                auto memberPtr = std::get<1>(memberInfo);
+                auto word_begin = std::sregex_iterator(str.begin(), str.end(), reg);
+                auto word_end = std::sregex_iterator();
+
+                if (std::distance(word_begin, word_end) >= 1)
+                {
+                    std::cout << str << std::endl;
+                    return (true);
+                }
+                return (false);
+            }
+
+            template<typename Derivate, typename Member>
+            static void    deserializeMember(std::istream &is, Derivate &obj, Member &memberInfo)
+            {
+                auto        memberName = std::get<0>(memberInfo);
+                auto        memberPtr = std::get<1>(memberInfo);
+                std::regex  regStd("^\t{1,}\"{1}[a-zA-Z]+\"{1}:{1}.+$");
+//                std::regex  regVecClass("^\t{1,}\\{+\"{1}[a-zA-Z]+\":{1}.+\\}{1},?.?$");
+
+                (void)obj;
+                for (char strLine[500]; is.getline(strLine, 500); is.eof())
+                {
+                    std::string     line(strLine);
+
+                    if (verifyRegexOccurrence(line, regStd))
+                    {
+                        std::cout << "Filling : " << memberName << std::endl;
+                        in::DefaultInput::memberHandler(is, obj.*memberPtr);
+                        break ;
+                    }
+                }
 //
 //                is >> obj.*memberPtr;
             }
+
+            template<typename MemberType>
+            static void    memberHandler(std::istream &is, MemberType &member)
+            {
+                is >> member;
+                std::cout << "Its something else !" << std::endl;
+            }
+
+            template<typename MemberType>
+            static void    memberHandler(std::istream &, std::vector<MemberType> &)
+            {
+                std::cout << "it's a Vector !" << std::endl;
+            }
         };
+
+        template <>
+        void    DefaultInput::memberHandler<std::string>(std::istream &is, std::string &member)
+        {
+            is >> member;
+            std::cout << "it's a string !" << std::endl;
+        }
     }
 }
 

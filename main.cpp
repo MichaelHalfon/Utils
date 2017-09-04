@@ -56,16 +56,18 @@ public:
     std::string         y;
     B                   something;
 
-    std::string       _type = "Class A";
+    std::string       _type = "ClassA";
 };
 
 int                     main()
 {
     A                   obj;
+    A                   obj1;
     std::stringstream   ss;
 
     obj.x = 15;
     ss << obj << std::endl;
     std::cout << ss.str() << std::endl;
+    ss >> obj1;
     return 0;
 }
