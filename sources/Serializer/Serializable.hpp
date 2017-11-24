@@ -9,8 +9,6 @@
 
 namespace mutils
 {
-    static unsigned int                         nbSerialized = 0;
-
     template<typename Derivate>
     struct IBaseImpl
     {
@@ -27,13 +25,7 @@ namespace mutils
     {
         auto tupleElem = std::get<I>(tuple);
 
-        OutputPolicy::serializeMember(os, obj, tupleElem, true);
-        mutils::out::JSONOutput::indentation--;
-        if (!mutils::out::JSONOutput::inVector)
-            os << std::endl << std::string(mutils::out::JSONOutput::indentation, '\t') << "}" << std::endl;
-        else
-            os << "}";
-        mutils::out::JSONOutput::firstTime = true;
+        OutputPolicy::serializeMember(os, obj, tupleElem);
     }
 
     template<typename OutputPolicy, typename Derivate, size_t I, size_t Second, size_t ...Rest, typename ...MemberPointers>
@@ -41,24 +33,24 @@ namespace mutils
     {
         auto tupleElem = std::get<I>(tuple);
 
-        OutputPolicy::serializeMember(os, obj, tupleElem, false);
+        OutputPolicy::serializeMember(os, obj, tupleElem);
         printAttrs<OutputPolicy>(os, obj, std::index_sequence<Second, Rest...>(), tuple);
     }
 
-    template<typename Derivate, typename ...MemberPointers>
+    template<typename InputPolicy, typename Derivate, typename ...MemberPointers>
     void    receiveAttrs(std::istream &, Derivate &, std::index_sequence<>, std::tuple<MemberPointers...> &)
     {}
 
-    template<typename Derivate, size_t I, size_t ...Rest, typename ...MemberPointers>
+    template<typename InputPolicy, typename Derivate, size_t I, size_t ...Rest, typename ...MemberPointers>
     void    receiveAttrs(std::istream &is, Derivate &obj, std::index_sequence<I, Rest...>, std::tuple<MemberPointers...> &tuple)
     {
         auto tupleElem = std::get<I>(tuple);
 
-        mutils::in::DefaultInput::deserializeMember(is, obj, tupleElem);
-        receiveAttrs(is, obj, std::index_sequence<Rest...>(), tuple);
+        InputPolicy::deserializeMember(is, obj, tupleElem);
+        receiveAttrs<InputPolicy>(is, obj, std::index_sequence<Rest...>(), tuple);
     }
 
-    template<typename Derivate, typename OutputPolicy = mutils::out::DefaultOutput>
+    template<typename Derivate, typename OutputPolicy = mutils::out::BinaryOutput, typename InputPolicy = mutils::in::BinaryInput>
     class Serializable
     {
         template<typename ...MemberPointers>
@@ -75,7 +67,7 @@ namespace mutils
 
             void    deserialize(std::istream &is, Derivate &obj)
             {
-                receiveAttrs(is, obj, std::index_sequence_for<MemberPointers...>(), this->_tuple);
+                receiveAttrs<InputPolicy>(is, obj, std::index_sequence_for<MemberPointers...>(), this->_tuple);
             }
             std::tuple<MemberPointers...>               _tuple;
         };
@@ -88,21 +80,7 @@ namespace mutils
 
         friend std::ostream     &operator<<(std::ostream &os, Derivate const &obj)
         {
-            static bool         begin = true;
-
-            if (begin && !mutils::out::JSONOutput::inVector)
-            {
-                begin = false;
-                os << "{ " << std::endl;
-            }
-            if (mutils::out::JSONOutput::inVector)
-                mutils::out::JSONOutput::firstTime = true;
-            mutils::out::JSONOutput::indentation++;
-            mutils::nbSerialized++;
             obj._impl->serialize(os, obj);
-            if (mutils::nbSerialized == 1)
-                os << "}" << std::endl;
-            mutils::nbSerialized--;
             return (os);
         }
 

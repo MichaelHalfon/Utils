@@ -1,11 +1,14 @@
-cmake_minimum_required(VERSION 3.7)
+cmake_minimum_required(VERSION 3.8)
 project(mutils)
 
-set(CMAKE_CXX_FLAGS "-W -Wall -Wextra -Werror --std=c++1z")
-
-include_directories(${PROJECT_SOURCE_DIR}/sources/)
+set(CMAKE_CXX_STANDARD 17)
 
 set(SOURCE_FILES
-        main.cpp)
+        sources/Network/ISocket.hpp
+        sources/Network/UnixSocket.cpp
+        sources/Network/UnixSocket.hpp
+        sources/Network/INetwork.hpp
+        sources/Serializer/Outputs.hpp
+        sources/Serializer/Serializable.hpp)
 
-add_executable(mutilsTest ${SOURCE_FILES})
+add_library(mutils SHARED ${SOURCE_FILES})
