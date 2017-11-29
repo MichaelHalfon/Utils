@@ -12,3 +12,10 @@ set(SOURCE_FILES
         sources/Serializer/Serializable.hpp)
 
 add_library(mutils SHARED ${SOURCE_FILES})
+
+install(TARGETS mutils
+        RUNTIME DESTINATION bin
+        LIBRARY DESTINATION lib)
+
+add_subdirectory(sources/tests tests)
+

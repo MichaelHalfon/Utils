@@ -4,9 +4,12 @@
 # include <regex>
 # include <iostream>
 # include <vector>
+# include <list>
 # include <unordered_map>
-#include <chrono>
-#include <thread>
+# include <map>
+# include <array>
+# include <chrono>
+# include <thread>
 
 
 namespace mutils {
@@ -59,6 +62,14 @@ namespace mutils {
                 }
             }
 
+            template<typename T>
+            static void writeMember(std::ostream &os, const std::list<T> &member) {
+
+                writeMember(os, member.size());
+                for (auto &elem : member) {
+                    writeMember(os, elem);
+                }
+            }
             template<typename T, typename U>
             static void writeMember(std::ostream &os, const std::unordered_map<T, U> &member) {
 
@@ -80,6 +91,15 @@ namespace mutils {
                     writeMember(os, elem.second);
                 }
             }
+
+            template<typename T, std::size_t size>
+            static void writeMember(std::ostream &os, const std::array<T, size> &member) {
+
+                for (auto &elem : member) {
+                    writeMember(os, elem);
+                }
+            }
+
         };
         template<>
         void BinaryOutput::writeMember<std::string>(std::ostream &os, const std::string &member) {
@@ -106,7 +126,6 @@ namespace mutils {
                 if constexpr (std::is_pointer<T>::value) {
                         member = new typename std::remove_pointer<T>::type;
                         readMember(is, *member);
-//                        is.read(reinterpret_cast<char *>(member), sizeof(*member));
                 }
                 else if (std::is_scalar<T>::value) {
                     is.read(reinterpret_cast<char *>(&member), sizeof(member));
@@ -133,6 +152,19 @@ namespace mutils {
 
             template<typename T>
             static void readMember(std::istream &is, std::vector<T> &member) {
+                unsigned long size = 0;
+
+                readMember(is, size);
+                for (unsigned int i = 0; i < size; i++) {
+                    T elem;
+
+                    readMember(is, elem);
+                    member.emplace_back(elem);
+                }
+            }
+
+            template<typename T>
+            static void readMember(std::istream &is, std::list<T> &member) {
                 unsigned long size = 0;
 
                 readMember(is, size);
@@ -171,6 +203,16 @@ namespace mutils {
                     readMember(is, key);
                     readMember(is, val);
                     member[key] = val;
+                }
+            }
+            template<typename T, std::size_t size>
+            static void readMember(std::istream &is, std::array<T, size> &member) {
+
+                for (unsigned int i = 0; i < size; i++) {
+                   T elem;
+
+                    readMember(is, elem);
+                    member[i] = elem;
                 }
             }
         };
