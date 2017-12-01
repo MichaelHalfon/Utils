@@ -8,11 +8,6 @@
 namespace mutils {
     namespace net {
 
-        enum connType {
-            TCP = 0,
-            UDP
-        };
-
         class ISocket {
             virtual ~ISocket() = default;
 

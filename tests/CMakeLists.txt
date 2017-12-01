@@ -18,15 +18,11 @@ project(mutilsTests)
 #
 #mark_as_advanced(CRITERION_INCLUDE_DIR CRITERION_LIBRARY)
 
-if (NOT MSVC)
-    set(CMAKE_CXX_FLAGS "-Wall -Wextra --coverage")
-endif()
 
 
 set(SOURCES TestsSer.cpp)
 
-include_directories("../Serializer"
-        "../Network")
+include_directories(${CMAKE_SOURCE_DIR}/lib/sources)
 
 add_executable(mutilsTests ${SOURCES})
 target_link_libraries(mutilsTests criterion)

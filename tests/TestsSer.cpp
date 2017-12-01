@@ -5,7 +5,7 @@
 #include <criterion/criterion.h>
 #include <algorithm>
 #include <sstream>
-#include "Serializable.hpp"
+#include "Serializer/Serializable.hpp"
 
 class B : public mutils::Serializable<B>
 {
