@@ -102,7 +102,7 @@ namespace mutils {
 
         };
         template<>
-        void BinaryOutput::writeMember<std::string>(std::ostream &os, const std::string &member) {
+        inline void BinaryOutput::writeMember<std::string>(std::ostream &os, const std::string &member) {
             os << member << std::endl;
         }
     }
@@ -217,7 +217,7 @@ namespace mutils {
             }
         };
         template<>
-        void BinaryInput::readMember<std::string>(std::istream &is, std::string &member) {
+        inline void BinaryInput::readMember<std::string>(std::istream &is, std::string &member) {
             std::getline(is, member);
         }
     }
