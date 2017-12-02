@@ -20,9 +20,11 @@ project(mutilsTests)
 
 
 
-set(SOURCES TestsSer.cpp)
+set(SOURCES TestsSer.cpp TestsNet.cpp Tests.hpp)
 
 include_directories(${CMAKE_SOURCE_DIR}/lib/sources)
 
 add_executable(mutilsTests ${SOURCES})
-target_link_libraries(mutilsTests criterion)
+
+target_link_libraries(mutilsTests criterion mutilsNet)
+

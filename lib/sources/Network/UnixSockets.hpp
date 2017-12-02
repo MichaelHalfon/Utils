@@ -15,29 +15,42 @@
 namespace mutils {
     namespace net {
         namespace tcp {
-            class UnixSockets : ISocket {
 
+            const int maxClientQueue = 128;
+
+            class UnixSockets : public ISocket {
             public:
                 UnixSockets();
+                ~UnixSockets() override { close(_socket); }
+                explicit UnixSockets(int fd);
 
-            public:
-                bool connect() override;
+                void bind(int port) override;
 
-                void disconnect() override;
+                void listen() override;
 
-                void send() override;
+                std::unique_ptr<ISocket> accept() override;
 
-                void receive() override;
+                void connect(const std::string &hostname, int port) override;
+
+                ssize_t sendData(const std::stringstream &is, size_t length) override;
+
+                ssize_t receiveData(std::stringstream &os, size_t length) override;
 
             private:
                 int _socket;
+                int _port;
+                std::string _hostname;
             };
         }
         namespace msg {
-            static const std::string errorConnectionSocket = "Error during the connection of the socket";
+            static const std::string errorCreationSocket = "Error during the creation of the socket.";
+            static const std::string errorBindSocket = "Error during the binding of the socket.";
+            static const std::string errorListenSocket = "Error during the listening on the socket.";
+            static const std::string errorAcceptClient = "Error during the accepting of a new client.";
+            static const std::string errorUnknownHostname = "Error: unknown hostname.";
+            static const std::string errorConnectionServer = "Error during the connection on the server.";
         }
     }
 }
-
 
 #endif //MUTILS_UNIXSOCKETS_HPP

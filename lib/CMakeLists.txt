@@ -9,9 +9,11 @@ set(SOURCE_FILES
         sources/Serializer/Outputs.hpp
         sources/Serializer/Serializable.hpp sources/Network/UnixSockets.cpp sources/Network/UnixSockets.hpp)
 
-add_library(mutils_lib SHARED ${SOURCE_FILES})
+include_directories(${CMAKE_SOURCE_DIR}/lib/sources)
 
-install(TARGETS mutils_lib
+add_library(mutilsNet SHARED ${SOURCE_FILES})
+
+install(TARGETS mutilsNet
         RUNTIME DESTINATION bin
         LIBRARY DESTINATION lib)
 
