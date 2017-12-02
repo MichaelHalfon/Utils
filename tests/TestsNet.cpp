@@ -95,15 +95,23 @@ void initClassAndSendSerToNetwork() {
 }
 
 Test(assert, global, .init = initClassAndSendSerToNetwork) {
+
+    //Simple scalar and standard string.
     cr_assert_eq(testNet.obj1.x, testNet.obj.x);
     cr_assert_eq(testNet.obj1.str, testNet.obj.str);
     cr_assert_eq(testNet.obj1.elem.x, testNet.obj.elem.x);
     cr_assert_eq(testNet.obj1.elem.y, testNet.obj.elem.y);
+
+    // Different kind of pointers
     cr_assert_eq(*testNet.obj1.w, *testNet.obj.w);
     cr_assert_eq(*testNet.obj1.y, *testNet.obj.y);
     cr_assert_eq(*testNet.obj1.z, *testNet.obj.z);
+
+    // Pointer on Class
     cr_assert_eq(testNet.obj1.ptrOnClass->x, testNet.obj.ptrOnClass->x);
     cr_assert_eq(testNet.obj1.ptrOnClass->y, testNet.obj.ptrOnClass->y);
+
+    // Vectors of scalar, smart pointer, naked pointer
     cr_assert_eq(testNet.obj1.arrayOfInt, testNet.obj.arrayOfInt);
     bool check = std::equal(testNet.obj1.arrayOfSerClass.begin(), testNet.obj1.arrayOfSerClass.end(),
                             testNet.obj.arrayOfSerClass.begin(), Tests::compareClassSimple);
@@ -114,12 +122,19 @@ Test(assert, global, .init = initClassAndSendSerToNetwork) {
     check = std::equal(testNet.obj1.arrayOfNakerSerClassPointer.begin(), testNet.obj1.arrayOfNakerSerClassPointer.end(),
                        testNet.obj.arrayOfNakerSerClassPointer.begin(), Tests::compareClassPointer);
     cr_assert_eq(check, true);
+
+    // Map
     check = std::equal(testNet.obj1.orderedMapOfIntAndSharedPtrOnSerClass.begin(), testNet.obj1.orderedMapOfIntAndSharedPtrOnSerClass.end(),
                             testNet.obj.orderedMapOfIntAndSharedPtrOnSerClass.begin(), Tests::compareMaps);
     cr_assert_eq(check, true);
+
+
+    // List
     check = std::equal(testNet.obj1.listOfSerClass.begin(), testNet.obj1.listOfSerClass.end(),
                        testNet.obj.listOfSerClass.begin(), Tests::compareClassPointer);
     cr_assert_eq(check, true);
+
+    // std::array
     check = std::equal(testNet.obj1.stdArrayOfSerClass.begin(), testNet.obj1.stdArrayOfSerClass.end(),
                        testNet.obj.stdArrayOfSerClass.begin(), Tests::compareClassPointer);
     cr_assert_eq(check, true);
