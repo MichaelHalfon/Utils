@@ -6,7 +6,8 @@
 #include <unistd.h>
 #include <memory>
 #include <iostream>
-#include "Network/UnixSockets.hpp"
+#include "Network/Network.hpp"
+//#include "Network/UnixSockets.hpp
 #include "Tests.hpp"
 
 Tests testNet;
@@ -59,7 +60,7 @@ void initClassAndSendSerToNetwork() {
     pid_t pid = fork();
     if (pid == 0) {
         try {
-            std::unique_ptr<mutils::net::ISocket> sock(new mutils::net::tcp::UnixSockets);
+            std::unique_ptr<mutils::net::ITCPSocket> sock(new mutils::net::tcp::UnixSockets);
             std::stringstream ss;
 
             sock->bind(); // default value: 4242
@@ -78,10 +79,10 @@ void initClassAndSendSerToNetwork() {
     }
     else {
         try {
-            std::unique_ptr<mutils::net::ISocket> sock(new mutils::net::tcp::UnixSockets);
+            std::unique_ptr<mutils::net::ITCPSocket> sock(new mutils::net::tcp::UnixSockets);
             sleep(2);
 
-            sock->connect(); // default values: "localhost", 4242
+            sock->setServerInformations(); // default values: "localhost", 4242
             std::stringstream ss;
 
             sock->receiveData(ss, sizeof(testNet.obj));
