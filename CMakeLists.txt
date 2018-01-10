@@ -26,7 +26,7 @@ set(SOURCE_FILES
 		src/main.cpp)
 
 add_executable(Network ${SOURCE_FILES})
-include_directories(include futils)
+include_directories(include futils mutils/lib/sources/)
 set_target_properties(Network PROPERTIES RUNTIME_OUTPUT_DIRECTORY ../)
 if (UNIX)
 target_compile_options(Network PUBLIC -W -Wall -Werror -Wextra -g3)
@@ -41,7 +41,8 @@ find_library(SFMLWINDOW sfml-window HINTS ./lib)
 find_library(SFMLAUDIO sfml-audio HINTS ./lib)
 find_library(SFMLGRAPHICS sfml-graphics HINTS ./lib)
 target_link_libraries(Network ${FENDER})
-#target_link_libraries(Network mutilsNet) <-------- A TESTER
+	# TODO A TESTER
+#target_link_libraries(Network mutilsNet)
 message("Found ${FENDER}")
 target_link_libraries(Network ${SFMLSYSTEM} ${SFMLAUDIO} ${SFMLGRAPHICS} ${SFMLWINDOW})
 endif (WIN32)

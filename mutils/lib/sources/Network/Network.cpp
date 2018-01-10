@@ -8,6 +8,7 @@ namespace mutils {
     namespace net {
         Network::Network()
                 : _tcpConnection(new TCPSocket()), _udpConnection(new UDPSocket()) {
+            std::cout << "Network." << std::endl;
         }
     }
 }
