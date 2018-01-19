@@ -15,9 +15,6 @@
 # include "events.hpp"
 # include "rendering.hpp"
 
-# define QUOTE(str) #str
-# define EXPAND_AND_QUOTE(str) QUOTE(str)
-
 // Utils forward declarations
 namespace futils
 {
@@ -34,38 +31,44 @@ namespace fender
     using vec2ui = futils::Vec2<unsigned int>;
     using vec3ui = futils::Vec3<unsigned int>;
 
-  class Fender
-  {
-    futils::UP<futils::EntityManager> entityManager;
-    futils::UP<futils::Mediator> events;
-  public:
-    Fender(std::string const &);
-    int start();
-    int run();
+    class Fender
+    {
+        futils::UP<futils::EntityManager> entityManager;
+        futils::UP<futils::Mediator> events;
+    public:
+        Fender(std::string const &);
+        int start();
+        int run();
 
-    void loadSystemDir(std::string const &path);
+        void loadSystemDir(std::string const &path);
 
-    template <typename System, typename ...Args>
-    void addSystem(Args ...args) {
-      entityManager->addSystem<System>(args...);
+        template <typename ...Args>
+        bool loadSystem(std::string const &path, Args... args)
+        {
+            return entityManager->loadSystem(path, args...);
+        };
+
+        template <typename System, typename ...Args>
+        void addSystem(Args ...args) {
+            entityManager->addSystem<System>(args...);
+        };
+
+        template <typename System>
+        void addSystem()
+        {
+            entityManager->addSystem<System>();
+        }
+
+        template <typename System>
+        void removeSystem() {
+            entityManager->removeSystem(futils::demangle<System>());
+        }
+
+        template <typename T, typename ...Args>
+        T *createEntity(Args ...args) {
+            return entityManager->create<T>(args...);
+        };
     };
-
-		template <typename System>
-		void addSystem()
-		{
-			entityManager->addSystem<System>();
-		}
-		
-    template <typename System>
-    void removeSystem() {
-      entityManager->removeSystem(futils::demangle<System>());
-    }
-
-    template <typename T, typename ...Args>
-    T *createEntity(Args ...args) {
-      return entityManager->create<T>(args...);
-    };
-  };
 }
 
 #endif

@@ -19,37 +19,74 @@ namespace mutils::net {
             name = "Client";
     }
 
+    // Vérifier que ça ne pete pas en multi - client
     void Network::init() {
         ++_phase;
 
         addReaction<fender::events::Shutdown>([this](futils::IMediatorPacket &) {
+            _serverShutdown = true;
+            _listenerThread.join();
             entityManager->removeSystem(name);
         });
 
         if (_isServer) {
-            entityManager->addSystem<Listener>();
+            _tcpConnection->bind(4242);
+            _tcpConnection->listen();
+            _listenerThread = std::thread([this]() {
+                while (!_serverShutdown) {
+                    timeval t;
 
-            addReaction<newClientMessage>([this](futils::IMediatorPacket &pkg) {
-                std::cout << "New Client !" << std::endl;
-
-                auto msg = futils::Mediator::rebuild<newClientMessage>(pkg);
-                auto it = _asyncSockets.begin();
-
-                for (; it != _asyncSockets.end(); it++) {
-                    if((*it)->assign(msg.client))
-                        break ;
+                    FD_ZERO(&_rfds);
+                    FD_SET(_tcpConnection->getSocket(), &_rfds);
+                    for (auto &sock : _connections) {
+                        FD_SET(sock, &_rfds);
+                    }
+                    t.tv_sec = 1;
+                    t.tv_usec = 0;
+                    select(_tcpConnection->getSocket() + 1, &_rfds, nullptr, nullptr, &t);
+                    if (FD_ISSET(_tcpConnection->getSocket(), &_rfds)) {
+                        std::cout << "new client !" << std::endl;
+                        auto conn = _tcpConnection->accept();
+                        FD_SET(conn->getSocket(), &_rfds);
+                        _connectionSocket[conn->getSocket()] = new AsyncSocket(conn);
+                        _connections.push_back(conn->getSocket());
+                    }
+                    for (auto &sock : _connections) {
+                        if (FD_ISSET(sock, &_rfds)) {
+                            std::cout << "There is something to read !" << std::endl;
+                            _fds.push_back(sock);
+                            _cv.notify_all();
+//                            std::unique_lock<std::mutex> lk(_mutexCv);
+//                            _cv.wait(lk, [] {return dataProcessed;});
+                            std::cout << "size: " << _fds.size() << std::endl;
+                        }
+                    }
                 }
-
-                if (it == _asyncSockets.end()) {
-                    std::unique_ptr<AsyncSocket> as(new AsyncSocket);
-                    _asyncSockets.push_back(std::move(as));
-                    it = _asyncSockets.end();
-                    it--;
-                    (*it)->assign(msg.client);
-                }
-
-                _connectionSocket[msg.client->getSocket()] = it->get();
             });
+
+//            entityManager->addSystem<Listener>();
+//
+//            addReaction<newClientMessage>([this](futils::IMediatorPacket &pkg) {
+//                std::cout << "New Client !" << std::endl;
+//
+//                auto msg = futils::Mediator::rebuild<newClientMessage>(pkg);
+//                auto it = _asyncSockets.begin();
+//
+//                for (; it != _asyncSockets.end(); it++) {
+//                    if((*it)->assign(msg.client))
+//                        break ;
+//                }
+//
+//                if (it == _asyncSockets.end()) {
+//                    std::unique_ptr<AsyncSocket> as(new AsyncSocket);
+//                    _asyncSockets.push_back(std::move(as));
+//                    it = _asyncSockets.end();
+//                    it--;
+//                    (*it)->assign(msg.client);
+//                }
+//
+//                _connectionSocket[msg.client->getSocket()] = it->get();
+//            });
         }
         else {
             std::cout << "Connecting to server..." << std::endl;
@@ -71,31 +108,18 @@ namespace mutils::net {
     }
 
     void Network::monitorConnections() {
-        timeval t;
-        FD_ZERO(&_rfds);
-        FD_SET(_tcpConnection->getSocket(), &_rfds);
-        for (auto &sock : _connections) {
-            FD_SET(sock->getSocket(), &_rfds);
-        }
-        t.tv_sec = 1;
-        t.tv_usec = 0;
-        select((int)_connections.size() + 1, &_rfds, nullptr, nullptr, &t);
-        for (auto &sock : _connections) {
-            if (FD_ISSET(sock->getSocket(), &_rfds)) {
+        for (auto &item : _connectionSocket) {
+            if(item.second->hasReceived()) {
+                Packet pkg;
+
+                std::pair<SOCKET, BinaryData> receivedElem = item.second->read();
+                pkg.clientId = receivedElem.first;
+                pkg.data = receivedElem.second;
+
+                std::cout << pkg.data._data << std::endl;
+                events->send<Packet>(pkg);
             }
         }
-//        for (auto &item : _connectionSocket) {
-//            if(item.second->hasReceived()) {
-//                Packet pkg;
-//
-//                std::pair<SOCKET, BinaryData> receivedElem = item.second->read();
-//                pkg.clientId = receivedElem.first;
-//                pkg.data = receivedElem.second;
-//
-//                std::cout << pkg.data._data << std::endl;
-//                events->send<Packet>(pkg);
-//            }
-//        }
     }
 
     void Network::run(float elapsed) {

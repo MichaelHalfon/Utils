@@ -39,17 +39,22 @@ namespace mutils::net {
         void monitorConnections();
 
     private:
-        // Variable
+        // Both
         std::unique_ptr<ITCPSocket> _tcpConnection;
         std::vector<std::unique_ptr<IUDPSocket>> _udpConnections;
-        std::unordered_map<int, AsyncSocket *> _connectionSocket;
-        std::vector<std::unique_ptr<mutils::net::AsyncSocket>> _asyncSockets;
-        std::vector<std::unique_ptr<mutils::net::ITCPSocket>> _connections;
-
-        fd_set _rfds;
         bool _isServer;
         int _phase{0};
         float _sumTime { 0 };
+
+        // Server
+        std::vector<int> _connections;
+        std::unordered_map<int, AsyncSocket *> _connectionSocket;
+        fd_set _rfds;
+        std::thread _listenerThread;
+        bool _serverShutdown { false };
+
+
+
     };
 }
 

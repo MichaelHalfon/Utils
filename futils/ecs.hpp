@@ -12,9 +12,9 @@
 # include <typeinfo>
 # include <functional>
 # include <unordered_map>
+# include "dloader.hpp"
 # include "clock.hpp"
 # include "mediator.hpp"
-# include "ini.hpp"
 # include "queue.hpp"
 
 namespace futils
@@ -22,59 +22,57 @@ namespace futils
     class   EntityManager;
     class   IEntity;
 
-  class   IComponent
-  {
-  protected:
-      futils::type_index _typeindex;
-      IEntity     *__entity{nullptr};
-  public:
-      virtual ~IComponent() {}
-
-      // Friend of EntityManager
-      void setTypeindex(futils::type_index index) {
-          _typeindex = index;
-      }
-      // END
-
-      void                setEntity(IEntity &ent) {
-          __entity = &ent;
-      }
-
-      IEntity &getEntity() const
-      {
-          return *__entity;
-      }
-
-      futils::type_index getTypeindex() const {
-          return _typeindex;
-      }
-  };
+    class   IComponent
+    {
+    protected:
+        IEntity *__entity{nullptr};
+        futils::type_index _typeindex;
+    public:
+        virtual ~IComponent() {}
+        // Friend of EntityManager - Very important - fake CRTP
+        void setTypeindex(futils::type_index index) {
+            _typeindex = index;
+        }
+        // END
+        void setEntity(IEntity &ent) {
+            __entity = &ent;
+        }
+        IEntity &getEntity() const {
+            return *__entity;
+        }
+        futils::type_index getTypeindex() const {
+            return _typeindex;
+        }
+    };
 
     class   ISystem
-  {
-  protected:
-    std::string name{"Undefined"};
-    EntityManager *entityManager{nullptr};
-    Mediator *events{nullptr};
-    std::function<void(EntityManager *)> afterDeath{[](EntityManager *){}};
+    {
+    protected:
+        std::string name{"Undefined"};
+        EntityManager *entityManager{nullptr};
+        Mediator *events{nullptr};
+        std::function<void(EntityManager *)> afterDeath{[](EntityManager *){}};
 
-    // It will segfault if events is not set. Be careful !
-    template <typename T>
-    void addReaction(std::function<void(IMediatorPacket &pkg)> fun)
-    {
-      events->require<T>(this, fun);
-    }
-  public:
-    virtual ~ISystem() {}
-    virtual void run(float elapsed = 0) = 0;
-    void provideManager(EntityManager &manager) { entityManager = &manager; }
-    void provideMediator(Mediator &mediator) { events = &mediator; }
-    std::string const &getName() const { return name; }
-    std::function<void(EntityManager *)> getAfterDeath()
-    {
-      return afterDeath;
-    }
-  };
+        // It will segfault if events is not set. Be careful !
+        template <typename T>
+        void addReaction(std::function<void(IMediatorPacket &pkg)> fun)
+        {
+            events->require<T>(this, fun);
+        }
+    public:
+        virtual ~ISystem() {
+//            std::cout << "Forgetting " << this->name << " in events" << std::endl;
+//            events->erase(this);
+        }
+        virtual void run(float elapsed = 0) = 0;
+        void provideManager(EntityManager &manager) { entityManager = &manager; }
+        void provideMediator(Mediator &mediator) { events = &mediator; }
+        std::string const &getName() const { return name; }
+        std::function<void(EntityManager *)> getAfterDeath()
+        {
+            return afterDeath;
+        }
+    };
 
     class StateSystem : public ISystem
     {
@@ -84,6 +82,7 @@ namespace futils
         virtual void run(float elapsed = 0) = 0;
     };
 
+    // Event
     template <typename T>
     class ComponentAttached
     {
@@ -97,6 +96,7 @@ namespace futils
         ComponentAttached(T const &compo): compo(compo) { verifType(); }
     };
 
+    // Event
     template <typename T>
     class ComponentDeleted
     {
@@ -182,16 +182,18 @@ namespace futils
         {
             if (components.find(futils::type<Compo>::index) == components.end())
                 return false;
-            auto &compo = components.at(futils::type<Compo>::index);
+            auto compo = components.at(futils::type<Compo>::index);
             events->send<ComponentDeleted<Compo>>(static_cast<const Compo &>(*compo));
             components.erase(futils::type<Compo>::index);
             onDetach(*compo);
+            delete compo;
             return true;
         }
 
         int         getId() const { return this->_id; }
     };
 
+    // Event
     template <typename T>
     class EntityCreated
     {
@@ -205,75 +207,186 @@ namespace futils
         EntityCreated(T const &entity): entity(entity) { verifType(); }
     };
 
-  class   EntityManager
+    class   EntityManager
     {
-        int                                     status{0};
-        std::unordered_map<std::string, ISystem *>   systemsMap;
-        futils::Queue<std::string> systemsMarkedForErase;
-        std::unordered_multimap<futils::type_index, IComponent *> components;
+        using SystemMap = std::unordered_map<std::string, ISystem *>;
+        using SystemQueue = futils::Queue<std::string>;
+        using ComponentContainer = std::unordered_multimap<futils::type_index, IComponent *>;
+        using DynamicLibaryContainer = std::unordered_map<std::string, futils::UP<futils::Dloader>>;
+        int status{0};
+        int orderIndex{0};
+
+        SystemMap systemsMap;
+        SystemQueue systemsMarkedForErase;
+        ComponentContainer components;
+
+        // Containers for system ordering.
         std::map<int, ISystem *> orderMap;
         std::unordered_map<ISystem *, int> systemOrder;
-        std::list<IEntity *> entities;
+
+        // All entities
+        int counter{0};
+
+        // Time
         futils::Clock<float> timeKeeper;
+
+        // Event Mediator
         futils::Mediator *events{nullptr};
-        int orderIndex{0};
+
+        // Used for memory Management to track entities created
+        futils::ISystem *currentSystem{nullptr};
+        std::unordered_multimap<std::string, IEntity *> temporaryEntities;
+        std::unordered_map<IEntity *, std::string> temporaryEntitiesRecords;
+        std::unordered_map<IEntity *, std::string> savedEntities;
+
+        // Extensions (ISystem)
+        DynamicLibaryContainer extensions;
+
+        template <typename T>
+        void verifIsEntity()
+        {
+            if (!std::is_base_of<IEntity, T>::value)
+                throw std::logic_error(std::string(typeid(T).name()) + " is not an Entity");
+        }
+
+        template <typename T>
+        void initEntity(T &entity)
+        {
+            entity.events = events;
+            entity.entityManager = this;
+            entity.onExtension = [this](IComponent &compo) {
+                components.insert(std::pair<futils::type_index, IComponent *>
+                                          (compo.getTypeindex(), &compo));
+                return true;
+            };
+            entity.onDetach = [this](IComponent &compo) {
+                auto range = components.equal_range(futils::type<T>::index);
+                for (auto it = range.first; it != range.second; it++) {
+                    auto &pair = *it;
+                    auto tmp = pair.second;
+                    if (tmp == &compo) {
+                        it = components.erase(it);
+                    }
+                }
+            };
+            events->send<EntityCreated<T>>(entity);
+            while (!entity.lateinitComponents.empty()) {
+                auto front = entity.lateinitComponents.front();
+                entity.onExtension(*front.first);
+                front.second(); // Notification
+                entity.lateinitComponents.pop();
+            }
+            entity.afterBuild();
+            counter++;
+        }
+
+        bool destroyFromSaved(IEntity &entity)
+        {
+            auto &container = savedEntities;
+            if (container.find(&entity) == container.end())
+                return false;
+            std::cerr << currentSystem->getName() << ": Destroyed saved entity " << entity.getId() << " created by " << container[&entity] << std::endl;
+            container.erase(&entity);
+            delete &entity;
+            counter--;
+            return true;
+        }
+
+        bool destroyFromTemporary(IEntity &entity)
+        {
+            if (temporaryEntitiesRecords.find(&entity) == temporaryEntitiesRecords.end())
+                return false;
+            const auto &system = currentSystem->getName();
+            const auto &creatorSystem = temporaryEntitiesRecords[&entity];
+            auto range = temporaryEntities.equal_range(creatorSystem);
+            for (auto it = range.first; it != range.second; it++) {
+                if (it->second == &entity)
+                {
+                    temporaryEntities.erase(it);
+                    break ;
+                }
+            }
+            std::cerr << system << ": Destroyed temporary entity " << entity.getId() << " created by " << creatorSystem << std::endl;
+            temporaryEntitiesRecords.erase(&entity);
+            delete &entity;
+            counter--;
+            return true;
+        }
+
+        void initSystem(ISystem &system)
+        {
+            // TODO : Smart Pointer !!
+            system.provideManager(*this);
+            system.provideMediator(*events);
+            events->send<std::string>("[" + system.getName() + "] loaded.");
+            this->systemsMap.insert(std::pair<std::string, ISystem *>(system.getName(), &system));
+            orderMap[orderIndex] = &system;
+            systemOrder[&system] = orderIndex;
+            orderIndex++;
+        }
     public:
         EntityManager() {
             timeKeeper.start();
         }
 
         template    <typename T, typename ...Args>
-        T           &create(Args ...args)
+        T &smartCreate(Args ...args)
         {
-            if (!std::is_base_of<IEntity, T>::value)
-                throw std::logic_error(std::string(typeid(T).name()) + " is not an Entity");
+            verifIsEntity<T>();
             auto entity = new T(args...);
-            entity->events = events;
-            entity->entityManager = this;
-            entities.push_front(entity);
-            entity->onExtension = [this](IComponent &compo) {
-                components.insert(std::pair<futils::type_index, IComponent *>
-					(compo.getTypeindex(), &compo));
-                return true;
-            };
-            entity->onDetach = [this](IComponent &compo) {
-                // How to remove a specific component in the multimap ? :/
-                auto range = components.equal_range(futils::type<T>::index);
-                for (auto it = range.first;
-                     it != range.second;
-                     it++) {
-                    auto &pair = *it;
-                    auto tmp = pair.second;
-                    if (tmp == &compo)
-                        it = components.erase(it);
-                }
-            };
-            events->send<EntityCreated<T>>(*entity);
-            while (!entity->lateinitComponents.empty()) {
-                auto front = entity->lateinitComponents.front();
-                entity->onExtension(*front.first);
-                front.second(); // Notification
-                entity->lateinitComponents.pop();
-            }
-            entity->afterBuild();
+            initEntity(*entity);
+            const auto &name = currentSystem->getName();
+            temporaryEntities.insert(std::pair<std::string, IEntity *>(name, entity));
+            temporaryEntitiesRecords[entity] = name;
             return *entity;
         }
 
+        template <typename T, typename ...Args>
+        T &create(Args ...args)
+        {
+            verifIsEntity<T>();
+            auto entity = new T(args...);
+            initEntity(*entity);
+            savedEntities.insert(std::pair<IEntity *, std::string>(entity, currentSystem->getName()));
+            return *entity;
+        };
+
+        bool destroy(IEntity &entity)
+        {
+            if (!destroyFromSaved(entity))
+                return destroyFromTemporary(entity);
+            return true;
+        }
+
         template    <typename System, typename ...Args>
-        void        addSystem(Args ...args)
+        void addSystem(Args ...args)
         {
             if (!std::is_base_of<ISystem, System>::value)
                 throw std::logic_error(std::string(typeid(System).name()) + " is not a System");
             // TODO : Smart Pointer !!
             auto system = new System(args...);
-            system->provideManager(*this);
-            system->provideMediator(*events);
-            events->send<std::string>("[" + system->getName() + "] loaded.");
-            this->systemsMap.insert(std::pair<std::string, ISystem *>(system->getName(), system));
-            orderMap[orderIndex] = system;
-            systemOrder[system] = orderIndex;
-            orderIndex++;
+//            system->provideManager(*this);
+//            system->provideMediator(*events);
+//            events->send<std::string>("[" + system->getName() + "] loaded.");
+//            this->systemsMap.insert(std::pair<std::string, ISystem *>(system->getName(), system));
+//            orderMap[orderIndex] = system;
+//            systemOrder[system] = orderIndex;
+//            orderIndex++;
+            initSystem(*system);
         }
+
+        template <typename ...Args>
+        bool loadSystem(std::string const &path, Args ...args)
+        {
+            if (extensions.find(path) != extensions.end()) {
+                std::cerr << path << " already loaded." << std::endl;
+                return false;
+            }
+            extensions[path] = std::make_unique<Dloader>(Dloader(path));
+            auto system = extensions[path]->build<ISystem>(args...);
+            initSystem(*system);
+            return true;
+        };
 
         void removeSystem(std::string const &systemName)
         {
@@ -289,13 +402,10 @@ namespace futils
             std::vector<T *> res;
             try {
                 auto range = components.equal_range(futils::type<T>::index);
-                for (auto it = range.first;
-                     it != range.second;
-                     it++) {
+                for (auto it = range.first; it != range.second; it++)
                     res.push_back(static_cast<T *>(it->second));
-                }
             } catch (std::exception const &e) {
-                LERR(e.what());
+                std::cerr << e.what() << std::endl;
             }
             return res;
         };
@@ -304,7 +414,7 @@ namespace futils
             events = &mediator;
         }
 
-        bool        isFine()
+        bool        isFine() const
         {
             return this->status == 0;
         }
@@ -314,6 +424,35 @@ namespace futils
             return systemsMap.size();
         }
 
+        void cleanSystems()
+        {
+            while (!systemsMarkedForErase.empty()) {
+                auto name = systemsMarkedForErase.front();
+                auto system = systemsMap.at(name);
+                events->erase(system);
+                systemsMap.erase(name);
+                orderMap.erase(systemOrder[system]);
+                systemOrder.erase(system);
+                auto afterDeath = system->getAfterDeath();
+                // Delete all temporary entities created by this system.
+                auto range = temporaryEntities.equal_range(name);
+                int entitiesDeleted = 0;
+                for (auto it = range.first; it != range.second; it++) {
+                    if (temporaryEntitiesRecords.find(it->second) == temporaryEntitiesRecords.end())
+                        continue ;
+                    delete it->second;
+                    temporaryEntitiesRecords.erase(it->second);
+                    entitiesDeleted++;
+                }
+                temporaryEntities.erase(name);
+                events->send<std::string>("[" + name + "] shutdown. Killed " + std::to_string(entitiesDeleted) + " entities.");
+                counter -= entitiesDeleted;
+                systemsMarkedForErase.pop();
+                delete system;
+                afterDeath(this);
+            }
+        }
+
         int run()
         {
             try {
@@ -321,21 +460,10 @@ namespace futils
                 for (auto &pair: orderMap)
                 {
                     auto &system = pair.second;
+                    currentSystem = system;
                     system->run(elapsed);
                 }
-                while (!systemsMarkedForErase.empty()) {
-                    auto name = systemsMarkedForErase.front();
-                    auto system = systemsMap.at(name);
-                    events->erase(system);
-                    systemsMap.erase(name);
-                    orderMap.erase(systemOrder[system]);
-                    systemOrder.erase(system);
-                    auto afterDeath = system->getAfterDeath();
-                    delete system;
-                    events->send<std::string>("[" + name + "] shutdown.");
-                    systemsMarkedForErase.pop();
-                    afterDeath(this);
-                }
+                cleanSystems();
             } catch (std::out_of_range const &)
             {
                 if (!systemsMarkedForErase.empty()) {
@@ -345,6 +473,14 @@ namespace futils
                 throw ;
             }
             return 0;
+        }
+
+        ~EntityManager()
+        {
+            if (counter != 0)
+                std::cerr << "Leaked memory : " << counter << " entities leaked." << std::endl;
+            else
+                std::cout << "Clean exit. Have a nice day !" << std::endl;
         }
     };
 }

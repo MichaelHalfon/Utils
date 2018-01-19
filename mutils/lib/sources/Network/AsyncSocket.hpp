@@ -29,19 +29,12 @@ namespace mutils::net {
 
     class AsyncSocket {
     public:
-        AsyncSocket();
+        explicit AsyncSocket(std::shared_ptr<mutils::net::ITCPSocket> const &);
         ~AsyncSocket();
 
-        //init of sockets + select();
-        void analyzeSockets();
-
-        // FD_ZERO and FD_SET
-        void initSockets();
-
         // Adds a socket to vector of sockets
-        bool assign(std::shared_ptr<ITCPSocket> const &sock);
-        void readContent(ITCPSocket const *sock);
-        Header getHeader(ITCPSocket const *sock);
+        void readContent();
+        Header getHeader();
 
 
         template<typename T>
@@ -74,21 +67,20 @@ namespace mutils::net {
 
         bool hasToSend() { return _bufferSend.size() > 0; }
         bool hasReceived() { return _bufferRec.size() > 0; }
-        std::size_t getNbConnections() { return _sockets.size(); }
-
-        static std::condition_variable _cv;
-        static std::mutex _mutexCv;
-
     private:
-        std::vector<std::shared_ptr<ITCPSocket>> _sockets;
+        std::unique_lock<std::mutex> _lk;
+        std::shared_ptr<mutils::net::ITCPSocket> _sock;
+
         std::queue<std::pair<SOCKET, BinaryData>> _bufferSend;
         std::queue<std::pair<SOCKET, BinaryData>> _bufferRec;
         std::thread _clientThread;
         bool _stop { false };
-        const int nbMaxConnections = 25;
-
-        std::unique_lock<std::mutex> _lk;
     };
+
+    extern std::mutex _mutexCv;
+    extern std::vector<int> _fds;
+    extern std::condition_variable _cv;
+    extern bool dataProcessed;
 }
 
 

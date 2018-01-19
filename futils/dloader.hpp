@@ -30,15 +30,13 @@ namespace futils
         {
             _handle = dlopen(path.c_str(), mode);
             if (_handle == nullptr)
-                throw std::domain_error("Cannot find " + path);
+                throw std::runtime_error("Cannot find " + path);
         }
 
         template    <typename T, typename ...Args>
         T           *build(Args ...args)
         {
-            std::string symbol{typeid(T).name()};
-            symbol = abi::__cxa_demangle(symbol.c_str(), 0, 0, nullptr);
-            symbol = futils::split(symbol, ':').back();
+            std::string symbol = "build";
             auto func = (T *(*)(Args ...))(dlsym(_handle, symbol.c_str()));
             if (func == nullptr)
             {

@@ -8,7 +8,6 @@
 # include <functional>
 # include <utility>
 # include "datapacket.hpp"
-#include "ini.hpp"
 
 namespace futils
 {
@@ -41,6 +40,9 @@ namespace futils
 
         template <typename T>
         void send(T &&data = T()) {
+            if (_requests.empty()) {
+                return;
+            }
             auto range = _requests.equal_range(futils::type<T>::index);
             auto packet = futils::AMediatorPacket<T>(std::forward<T>(data));
 
@@ -56,7 +58,6 @@ namespace futils
         void send (T const &data) {
             auto range = _requests.equal_range(futils::type<T>::index);
             auto packet = futils::AMediatorPacket<T>(data);
-
             for (auto it = range.first; it != range.second; it++) {
                 auto &identifiedAction = it->second;
                 if (identifiedAction.up) {
