@@ -9,6 +9,8 @@
 # include <unistd.h>
 #elif _WIN32
 # include <direct.h>
+#elif __APPLE__
+# include <unistd.h>
 #endif
 # include <iostream>
 

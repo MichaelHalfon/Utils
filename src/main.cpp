@@ -5,9 +5,10 @@ int main(int, char **av)
 {
     fender::Fender engine(av[0]);
 
-    engine.addSystem<mutils::net::Network>();
     if (engine.start() != 0)
         return 1;
+    engine.addSystem<mutils::net::Network>(true);
+    engine.addSystem<mutils::net::Network>();
     engine.run();
     return 0;
 }

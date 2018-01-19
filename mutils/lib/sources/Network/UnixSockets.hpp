@@ -22,21 +22,27 @@ namespace mutils {
             class UnixSockets : public ITCPSocket {
             public:
                 UnixSockets();
-                ~UnixSockets() override { close(_socket); }
+                ~UnixSockets() override { disconnect(); }
+
                 explicit UnixSockets(int fd);
+
+                void connect() override;
+                void disconnect() override;
 
                 void bind(int port) override;
                 void listen() override;
-                std::unique_ptr<ITCPSocket> accept() override;
+
+                std::shared_ptr<ITCPSocket> accept() override;
                 void setServerInformations(const std::string &hostname, int port) override;
-                ssize_t sendData(const std::stringstream &is, size_t length) override;
-                clientInfo receiveData(std::stringstream &os, size_t length) override;
+
+                ssize_t sendData(const char *, size_t length) const override;
+                DataInfos receiveData(char *, size_t length) const override;
 
             private:
-                int _socket;
                 int _port;
                 std::string _hostname;
                 std::string _ipAddress;
+                sockaddr_in _infos;
             };
         }
 
@@ -44,20 +50,19 @@ namespace mutils {
             class UnixSockets : public IUDPSocket {
             public:
                 UnixSockets();
-                ~UnixSockets() override { close(_socket); }
+                ~UnixSockets() override {close(_socket); }
 
                 void bind(int port) override;
 
                 void setServerInformations(const std::string &hostname, int port) override;
 
-                ssize_t sendData(const std::stringstream &is, size_t length) override;
+                ssize_t sendData(const char *, size_t length) const override;
 
-                clientInfo receiveData(std::stringstream &os, size_t length) override;
+                DataInfos receiveData(char *, size_t length) const override;
 
             private:
                 sockaddr_in _infos;
-                int _socket;
-                int _sizeInfo;
+                socklen_t _sizeInfo;
             };
         }
         namespace msg {
@@ -67,6 +72,7 @@ namespace mutils {
             const std::string errorAcceptClient = "Error during the accepting of a new client.";
             const std::string errorUnknownHostname = "Error: unknown hostname.";
             const std::string errorConnectionServer = "Error during the connection on the server.";
+            const std::string errorCloseSocket = "Error during the closing of the socket.";
         }
     }
 }

@@ -194,6 +194,12 @@ namespace futils
         }
     };
 
+    struct TextStyle {
+        std::string font;
+        int         size;
+        Color       color;
+    };
+
     static const std::vector<Color> allColors =
             {
                     Color(Crimson),

@@ -10,6 +10,11 @@ set(SOURCE_FILES
         sources/Network/Socket.hpp
         sources/Network/Network.hpp
         sources/Network/Network.cpp
+        sources/Network/Listener.hpp
+        sources/Network/Listener.cpp
+        sources/Network/AsyncSocket.hpp
+        sources/Network/AsyncSocket.cpp
+        ${CMAKE_SOURCE_DIR}/include/Packets.hpp
         )
 
 if (WIN32)
@@ -29,6 +34,7 @@ endif()
 
 include_directories(${PROJECT_SOURCE_DIR}/lib/sources/)
 include_directories(${CMAKE_SOURCE_DIR}/futils/)
+include_directories(${CMAKE_SOURCE_DIR}/include/)
 
 add_library(mutilsNet SHARED ${SOURCE_FILES} ${CMAKE_SOURCE_DIR}/lib/libfender.a)
 

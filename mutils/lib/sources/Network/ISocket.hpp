@@ -6,48 +6,60 @@
 # define MUTILS_ISOCKET_HPP
 
 # include <sstream>
+# include <memory>
 
-namespace mutils {
-    namespace net {
+#ifdef __unix__
+  using SOCKET = int;
+#endif
 
-        //TODO: structure contenant les informations du client et la data reçue. Valeur de retour de receiveData
-        struct clientInfo {
-            int id { 0 };
-            std::string ipAddress { };
-            ssize_t size { 0 };
-            std::string data { };
-        };
+namespace mutils::net {
 
-        class ISocket {
-        public:
-            virtual ~ISocket() = default;
+    struct DataInfos {
+        int senderId { 0 };
+        std::string ipAddress { };
+        ssize_t size { 0 };
+        std::string data { };
+    };
 
-            // Server Side
-            virtual void bind(int port = 4242) = 0;
+    class ISocket {
+    public:
+        virtual ~ISocket() = default;
 
-            // Client Side
-            virtual void setServerInformations(const std::string &hostname = "localhost", int port = 4242) = 0;
+        // Server Side
+        virtual void bind(int port = 4242) = 0;
 
-            //Both sides
-            virtual clientInfo receiveData(std::stringstream &os, size_t length) = 0;
-            virtual ssize_t sendData(const std::stringstream &is, size_t length) = 0;
+        // Client Side
+        virtual void setServerInformations(const std::string &hostname = "localhost", int port = 4242) = 0;
 
-        };
+        //Both sides
+        virtual DataInfos receiveData(char *, size_t length) const = 0;
+        virtual ssize_t sendData(const char *, size_t length) const = 0;
 
-        class ITCPSocket : public ISocket {
+        SOCKET getSocket() const { return _socket; };
 
-        public:
-            // Server Side
-            virtual void listen() = 0;
-            virtual std::unique_ptr<ITCPSocket> accept() = 0;
-        };
+    public:
+        SOCKET _socket;
+    };
 
-        class IUDPSocket : public ISocket {
-            // Client Side
-            virtual void setServerInformations(const std::string &hostname = "localhost", int port = 4343) override = 0;
+    class ITCPSocket : public ISocket {
 
-        };
-    }
+    public:
+        // Server Side
+        virtual void listen() = 0;
+        virtual std::shared_ptr<ITCPSocket> accept() = 0;
+
+        // Client Side
+        virtual void connect() = 0;
+
+        // Both Sides
+        virtual void disconnect() = 0;
+    };
+
+    class IUDPSocket : public ISocket {
+        // Client Side
+        virtual void setServerInformations(const std::string &hostname = "localhost", int port = 4343) override = 0;
+
+    };
 }
 
 #endif //MUTILS_ISOCKET_HPP

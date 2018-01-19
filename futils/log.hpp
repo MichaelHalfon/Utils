@@ -15,7 +15,10 @@
 # define FUNC __PRETTY_FUNCTION__
 #elif _WIN32
 # define FUNC __func__
+#elif __APPLE__
+# define FUNC __PRETTY_FUNCTION__
 #endif
+
 # define DEFAULT_FUNC_NAME   "(undefined)"
 # define START_MSG           "Start log in "
 # define GET                 flog::Log::get

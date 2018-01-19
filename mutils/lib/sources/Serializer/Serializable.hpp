@@ -9,6 +9,8 @@
 
 namespace mutils
 {
+    struct ISerializable {};
+
     template<typename Derivate>
     struct IBaseImpl
     {
@@ -51,7 +53,7 @@ namespace mutils
     }
 
     template<typename Derivate, typename OutputPolicy = mutils::out::BinaryOutput, typename InputPolicy = mutils::in::BinaryInput>
-    class Serializable
+    class Serializable : public ISerializable
     {
         template<typename ...MemberPointers>
         struct Impl : public IBaseImpl<Derivate>

@@ -7,10 +7,13 @@
 
 #ifdef __linux__
 
-#include "UnixSockets.hpp"
+# include "UnixSockets.hpp"
 
 using TCPSocket = mutils::net::tcp::UnixSockets;
 using UDPSocket = mutils::net::udp::UnixSockets;
+using SOCCKADDR_IN = sockaddr_in;
+using SOCKADDR = sockaddr;
+using IN_ADDR = in_addr;
 
 #elif _WIN32
 

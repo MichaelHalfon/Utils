@@ -8,7 +8,9 @@
 # include <sstream>
 # include <vector>
 
-namespace futils::string {
+namespace futils {
+    static const std::string endl = "\0";
+
     inline bool     isNumber(std::string const &str)
     {
         return str.find_first_not_of("0123456789") == std::string::npos;

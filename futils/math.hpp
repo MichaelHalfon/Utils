@@ -59,6 +59,13 @@ namespace futils
     };
 
     template <typename T>
+    std::ostream &operator << (std::ostream &os, Vec2<T> const &vec)
+    {
+        os << "(" << vec.w << ", " << vec.h << ")";
+        return os;
+    }
+
+    template <typename T>
     struct Vec3
     {
         union
@@ -103,7 +110,14 @@ namespace futils
             return result;
         }
     };
-    
+
+    template <typename T>
+    std::ostream &operator << (std::ostream &os, Vec3<T> const &vec)
+    {
+        os << "(" << vec.w << ", " << vec.h << ", " << vec.z << ")";
+        return os;
+    }
+
     class Pct
     {
         float value;

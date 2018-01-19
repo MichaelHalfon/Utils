@@ -69,7 +69,7 @@ void initClassAndSendSerToNetwork() {
 
             ss << testNet.obj;
 
-            client->sendData(ss, sizeof(testNet.obj));
+            client->sendData(ss.str().c_str(), sizeof(testNet.obj));
 
             exit(0);
         }
@@ -83,9 +83,12 @@ void initClassAndSendSerToNetwork() {
             sleep(2);
 
             sock->setServerInformations(); // default values: "localhost", 4242
+            sock->connect();
             std::stringstream ss;
 
-            sock->receiveData(ss, sizeof(testNet.obj));
+            auto infos = sock->receiveData(nullptr, sizeof(testNet.obj));
+
+            ss << infos.data;
 
             ss >> testNet.obj1;
         }

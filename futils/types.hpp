@@ -9,6 +9,8 @@
 # include <functional>
 #if linux
 # include <cxxabi.h>
+#elif __APPLE__
+# include <cxxabi.h>
 #elif __WIN32
 
 #endif
@@ -55,10 +57,14 @@ namespace futils
         std::string full{typeid(T).name()};
 #ifdef linux
         full = abi::__cxa_demangle(full.c_str(), 0, 0, nullptr);
-        full = futils::string::split(full, ':').back();
+        full = futils::split(full, ':').back();
         return full;
 #elif _WIN32
         // TODO: Test on windows
+        return full;
+#elif __APPLE__
+        full = abi::__cxa_demangle(full.c_str(), 0, 0, nullptr);
+        full = futils::string::split(full, ':').back();
         return full;
 #endif
     }
