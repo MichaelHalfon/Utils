@@ -5,7 +5,6 @@
 #include <memory>
 #include <cstdint>
 #include "Network.hpp"
-#include "Listener.hpp"
 #include "events.hpp"
 
 namespace mutils::net {
@@ -19,7 +18,7 @@ namespace mutils::net {
             name = "Client";
     }
 
-    // Vérifier que ça ne pete pas en multi - client
+    //TODO: Vérifier que ça ne pete pas en multi - client
     void Network::init() {
         ++_phase;
 
@@ -63,30 +62,6 @@ namespace mutils::net {
                     }
                 }
             });
-
-//            entityManager->addSystem<Listener>();
-//
-//            addReaction<newClientMessage>([this](futils::IMediatorPacket &pkg) {
-//                std::cout << "New Client !" << std::endl;
-//
-//                auto msg = futils::Mediator::rebuild<newClientMessage>(pkg);
-//                auto it = _asyncSockets.begin();
-//
-//                for (; it != _asyncSockets.end(); it++) {
-//                    if((*it)->assign(msg.client))
-//                        break ;
-//                }
-//
-//                if (it == _asyncSockets.end()) {
-//                    std::unique_ptr<AsyncSocket> as(new AsyncSocket);
-//                    _asyncSockets.push_back(std::move(as));
-//                    it = _asyncSockets.end();
-//                    it--;
-//                    (*it)->assign(msg.client);
-//                }
-//
-//                _connectionSocket[msg.client->getSocket()] = it->get();
-//            });
         }
         else {
             std::cout << "Connecting to server..." << std::endl;

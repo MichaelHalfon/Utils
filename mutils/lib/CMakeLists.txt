@@ -10,8 +10,6 @@ set(SOURCE_FILES
         sources/Network/Socket.hpp
         sources/Network/Network.hpp
         sources/Network/Network.cpp
-        sources/Network/Listener.hpp
-        sources/Network/Listener.cpp
         sources/Network/AsyncSocket.hpp
         sources/Network/AsyncSocket.cpp
         ${CMAKE_SOURCE_DIR}/include/Packets.hpp
