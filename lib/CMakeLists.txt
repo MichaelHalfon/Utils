@@ -1,5 +1,4 @@
 cmake_minimum_required(VERSION 3.8)
-project(mutils_lib)
 
 set(CMAKE_CXX_STANDARD 17)
 
@@ -27,13 +26,13 @@ elseif (UNIX)
             )
 endif()
 
-include_directories(${CMAKE_SOURCE_DIR}/lib/sources)
-include_directories(${CMAKE_SOURCE_DIR}/lib/fender/include/)
+include_directories(lib/sources)
+include_directories(${PROJECT_SOURCE_DIR}/utils)
 
-add_library(mutilsNet SHARED ${SOURCE_FILES} fender/lib/libfender.a)
+add_library(mutilsNet SHARED ${SOURCE_FILES})
+
+target_link_libraries(fender)
 
 install(TARGETS mutilsNet
         RUNTIME DESTINATION bin
         LIBRARY DESTINATION lib)
-
-
