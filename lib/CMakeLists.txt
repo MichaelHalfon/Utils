@@ -30,6 +30,7 @@ endif()
 
 include_directories(sources)
 include_directories(${PROJECT_SOURCE_DIR}/utils)
+include_directories(${PROJECT_SOURCE_DIR}/projects/fender/include)
 
 add_library(mutilsNet SHARED ${SOURCE_FILES})
 
