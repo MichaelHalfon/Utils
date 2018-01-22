@@ -11,7 +11,6 @@ set(SOURCE_FILES
         sources/Network/Network.cpp
         sources/Network/AsyncSocket.hpp
         sources/Network/AsyncSocket.cpp
-        ${CMAKE_SOURCE_DIR}/include/Packets.hpp
         )
 
 if (WIN32)
