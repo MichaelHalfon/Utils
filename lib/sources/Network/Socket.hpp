@@ -18,7 +18,10 @@ using IN_ADDR = in_addr;
 #elif _WIN32
 
 #include "WindowsSockets.hpp"
+#pragma comment(lib, "Ws2_32.lib")
 
+using TCPSocket = mutils::net::tcp::WindowsSockets;
+using UDPSocket = mutils::net::udp::WindowsSockets;
 #endif
 
 #endif //MUTILS_SOCKET_HPP

@@ -58,6 +58,26 @@ namespace mutils::net::tcp {
     }
 
     void UnixSockets::setServerInformations(const std::string &hostname, int port) {
+        _hostname = hostname;
+        _port = port;
+    }
+
+    void UnixSockets::connect() {
+        struct hostent *hostinfo = nullptr;
+
+        hostinfo = gethostbyname(_hostname.c_str());
+        if (hostinfo == nullptr)
+            throw std::runtime_error(msg::errorUnknownHostname);
+
+        _infos.sin_addr = *(in_addr *) hostinfo->h_addr;
+        _infos.sin_port = htons(_port);
+        _infos.sin_family = AF_INET;
+
+        if (::connect(_socket, (sockaddr *) &_infos, sizeof(sockaddr)) == -1)
+            throw std::runtime_error(msg::errorConnectionServer);
+    }
+
+    void UnixSockets::connect(std::string const &hostname, int port) {
         struct hostent *hostinfo = nullptr;
 
         hostinfo = gethostbyname(hostname.c_str());
@@ -67,9 +87,7 @@ namespace mutils::net::tcp {
         _infos.sin_addr = *(in_addr *) hostinfo->h_addr;
         _infos.sin_port = htons(port);
         _infos.sin_family = AF_INET;
-    }
 
-    void UnixSockets::connect() {
         if (::connect(_socket, (sockaddr *) &_infos, sizeof(sockaddr)) == -1)
             throw std::runtime_error(msg::errorConnectionServer);
     }

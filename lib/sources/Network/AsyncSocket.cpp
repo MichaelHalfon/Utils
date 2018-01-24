@@ -2,7 +2,6 @@
 // Created by mboublil on 1/18/18.
 //
 
-#include <unistd.h>
 #include "AsyncSocket.hpp"
 
 namespace mutils::net {

@@ -43,6 +43,7 @@ namespace mutils::net {
                     t.tv_sec = 1;
                     t.tv_usec = 0;
                     select(_tcpConnection->getSocket() + 1, &_rfds, nullptr, nullptr, &t);
+                    std::cout << "Apres le select" << std::endl;
                     if (FD_ISSET(_tcpConnection->getSocket(), &_rfds)) {
                         std::cout << "new client !" << std::endl;
                         auto conn = _tcpConnection->accept();

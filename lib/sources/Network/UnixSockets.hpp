@@ -13,67 +13,60 @@
 #include <iostream>
 #include "ISocket.hpp"
 
-namespace mutils {
-    namespace net {
-        namespace tcp {
+namespace mutils::net {
 
-            const int maxClientQueue = 128;
+    namespace tcp {
 
-            class UnixSockets : public ITCPSocket {
-            public:
-                UnixSockets();
-                ~UnixSockets() override { disconnect(); }
+        const int maxClientQueue = 128;
 
-                explicit UnixSockets(int fd);
+        class UnixSockets : public ITCPSocket {
+        public:
+            UnixSockets();
+            ~UnixSockets() override { disconnect(); }
 
-                void connect() override;
-                void disconnect() override;
+            explicit UnixSockets(int fd);
 
-                void bind(int port) override;
-                void listen() override;
+            void connect() override;
+            void connect(std::string const &hostname, int port) override;
+            void disconnect() override;
 
-                std::shared_ptr<ITCPSocket> accept() override;
-                void setServerInformations(const std::string &hostname, int port) override;
+            void bind(int port) override;
+            void listen() override;
 
-                ssize_t sendData(const char *, size_t length) const override;
-                DataInfos receiveData(char *, size_t length) const override;
+            std::shared_ptr<ITCPSocket> accept() override;
+            void setServerInformations(const std::string &hostname, int port) override;
 
-            private:
-                int _port;
-                std::string _hostname;
-                std::string _ipAddress;
-                sockaddr_in _infos;
-            };
-        }
+            ssize_t sendData(const char *, size_t length) const override;
+            DataInfos receiveData(char *, size_t length) const override;
 
-        namespace udp {
-            class UnixSockets : public IUDPSocket {
-            public:
-                UnixSockets();
-                ~UnixSockets() override {close(_socket); }
+        private:
+            int _port;
+            std::string _hostname;
+            std::string _ipAddress;
+            sockaddr_in _infos;
+        };
+    }
 
-                void bind(int port) override;
+    namespace udp {
+        class UnixSockets : public IUDPSocket {
+        public:
+            UnixSockets();
+            ~UnixSockets() override {close(_socket); }
 
-                void setServerInformations(const std::string &hostname, int port) override;
+            void bind(int port) override;
 
-                ssize_t sendData(const char *, size_t length) const override;
+            void setServerInformations(const std::string &hostname, int port) override;
 
-                DataInfos receiveData(char *, size_t length) const override;
+            ssize_t sendData(const char *, size_t length) const override;
 
-            private:
-                sockaddr_in _infos;
-                socklen_t _sizeInfo;
-            };
-        }
-        namespace msg {
-            const std::string errorCreationSocket = "Error during the creation of the socket.";
-            const std::string errorBindSocket = "Error during the binding of the socket.";
-            const std::string errorListenSocket = "Error during the listening on the socket.";
-            const std::string errorAcceptClient = "Error during the accepting of a new client.";
-            const std::string errorUnknownHostname = "Error: unknown hostname.";
-            const std::string errorConnectionServer = "Error during the connection on the server.";
-            const std::string errorCloseSocket = "Error during the closing of the socket.";
-        }
+            DataInfos receiveData(char *, size_t length) const override;
+
+        private:
+            sockaddr_in _infos;
+            socklen_t _sizeInfo;
+            std::string _hostname;
+            int _port;
+        };
     }
 }
 

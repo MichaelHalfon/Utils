@@ -10,6 +10,7 @@
 #include <cstdint>
 #include <condition_variable>
 #include <mutex>
+#include <thread>
 #include "ISocket.hpp"
 #include "futils.hpp"
 #include "types.hpp"

@@ -17,7 +17,8 @@ if (WIN32)
     set (SOURCE_FILES
             ${SOURCE_FILES}
             sources/Network/WindowsSockets.hpp
-            sources/Network/WindowsSockets.cpp
+            sources/Network/WindowsTCPSockets.cpp
+            sources/Network/WindowsUDPSockets.cpp
             )
 elseif (UNIX)
     set (SOURCE_FILES
@@ -32,10 +33,10 @@ include_directories(sources)
 include_directories(${PROJECT_SOURCE_DIR}/utils)
 include_directories(${PROJECT_SOURCE_DIR}/projects/fender/include)
 
-add_library(mutilsNet SHARED ${SOURCE_FILES})
+add_library(mutilsNet STATIC ${SOURCE_FILES})
 
 target_link_libraries(fender)
 
-install(TARGETS mutilsNet
-        RUNTIME DESTINATION bin
-        LIBRARY DESTINATION lib)
+#install(TARGETS mutilsNet
+#        RUNTIME DESTINATION bin
+#        LIBRARY DESTINATION lib)

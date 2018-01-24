@@ -3,7 +3,16 @@
 //
 
 #include <criterion/criterion.h>
+#ifdef __unix__
+
 #include <unistd.h>
+
+#elif _WIN32
+
+#include <WinBase.h>
+
+#endif
+
 #include <memory>
 #include <iostream>
 #include "Network/Network.hpp"
