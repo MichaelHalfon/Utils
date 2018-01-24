@@ -16,9 +16,6 @@ namespace mutils::net::udp {
         if ((_socket = socket(AF_INET, SOCK_DGRAM, proto->p_proto)) == -1 ||
             setsockopt(_socket, SOL_SOCKET, SO_REUSEADDR, &flag, sizeof(int)) == -1)
             throw std::runtime_error(msg::errorCreationSocket);
-        _infos.sin_addr.s_addr = INADDR_ANY;
-        _infos.sin_port = htons(port);
-        _infos.sin_family = AF_INET;
     }
 
     void UnixSockets::bind(int port) {
@@ -35,6 +32,10 @@ namespace mutils::net::udp {
     void UnixSockets::setServerInformations(const std::string &hostname, int port) {
         _hostname = hostname;
         _port = port;
+
+        _infos.sin_addr.s_addr = INADDR_ANY;
+        _infos.sin_port = htons(port);
+        _infos.sin_family = AF_INET;
     }
 
     ssize_t UnixSockets::sendData(const char *msg, size_t length) const {
