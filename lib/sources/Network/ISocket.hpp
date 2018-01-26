@@ -7,6 +7,7 @@
 
 # include <sstream>
 # include <memory>
+# include "DataStructures.hpp"
 
 #ifdef __unix__
   using SOCKET = int;
@@ -31,13 +32,6 @@ namespace mutils::net {
         const std::string errorConnectionServer = "Error during the connection on the server.";
         const std::string errorCloseSocket = "Error during the closing of the socket.";
     }
-
-    struct DataInfos {
-        int senderId { 0 };
-        std::string ipAddress { };
-        ssize_t size { 0 };
-        std::string data { };
-    };
 
     class ISocket {
     public:
@@ -64,7 +58,7 @@ namespace mutils::net {
     public:
         // Server Side
         virtual void listen() = 0;
-        virtual std::shared_ptr<ITCPSocket> accept() = 0;
+        virtual ITCPSocket *accept() = 0;
 
         // Client Side
         virtual void connect() = 0;

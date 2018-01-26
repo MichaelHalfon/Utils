@@ -33,7 +33,7 @@ namespace mutils::net {
             void bind(int port) override;
             void listen() override;
 
-            std::shared_ptr<ITCPSocket> accept() override;
+            ITCPSocket * accept() override;
             void setServerInformations(const std::string &hostname, int port) override;
 
             ssize_t sendData(const char *, size_t length) const override;

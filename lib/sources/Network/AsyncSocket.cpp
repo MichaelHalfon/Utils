@@ -9,9 +9,9 @@ namespace mutils::net {
     std::mutex _mutexCv;
     std::vector<int> _fds;
     std::condition_variable _cv;
-    bool dataProcessed = false;
+    std::unordered_map<SOCKET, Actions> _action;
 
-    AsyncSocket::AsyncSocket(std::shared_ptr<mutils::net::ITCPSocket> const &sock)  : _lk(_mutexCv), _sock(sock) {
+    AsyncSocket::AsyncSocket(ITCPSocket *sock)  : _lk(_mutexCv), _sock(sock) {
         _clientThread = std::thread([this]() {
             while (!_stop) {
 
@@ -25,8 +25,18 @@ namespace mutils::net {
                     return false;
                 });
 
-                readContent();
-//                dataProcessed = true;
+                switch (_action[_sock->getSocket()]) {
+                    case Actions::READ:
+                        readContent();
+                        _action.erase(_sock->getSocket());
+                        break ;
+                    case Actions::WRITE:
+                        writeContent();
+                        _action.erase(_sock->getSocket());
+                        break ;
+                    default:
+                        break ;
+                }
 //                _cv.notify_all();
 //                analyzeSockets();
             }
@@ -53,10 +63,13 @@ namespace mutils::net {
         DataInfos infos = _sock->receiveData(nullptr, hdr.size);
         BinaryData data;
 
-        data.type = hdr.type;
+        data.hdr = hdr;
         data._data = infos.data;
-        std::cout << "content read: " << data._data << std::endl;
         received(_sock->getSocket(), data);
+    }
+
+    void AsyncSocket::writeContent() {
+        std::cout << "TODO" << std::endl;
     }
 
 }

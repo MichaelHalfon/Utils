@@ -45,7 +45,7 @@ namespace mutils::net::tcp {
             throw std::runtime_error(msg::errorListenSocket);
     }
 
-    std::shared_ptr<ITCPSocket> UnixSockets::accept() {
+    ITCPSocket * UnixSockets::accept() {
         sockaddr_in csin;
         int sinsize = sizeof(csin);
         int csock;
@@ -53,7 +53,7 @@ namespace mutils::net::tcp {
         if ((csock = ::accept(_socket, (sockaddr *) &csin, (socklen_t *) &sinsize)) == -1)
             throw std::runtime_error(msg::errorAcceptClient);
 
-        std::shared_ptr<mutils::net::ITCPSocket> newSocket(new UnixSockets(csock));
+        ITCPSocket *newSocket = new UnixSockets(csock);
         return (newSocket);
     }
 

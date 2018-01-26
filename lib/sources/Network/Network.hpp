@@ -11,18 +11,12 @@
 #include "ecs.hpp"
 #include "AsyncSocket.hpp"
 
-
 namespace mutils::net {
 
     struct test : public Serializable<test> {
         test() : Serializable(&test::testVal) {}
 
         std::string testVal {"salut lol !"};
-    };
-
-    struct Packet {
-        int clientId;
-        BinaryData data;
     };
 
     class Network : public futils::ISystem {
@@ -37,6 +31,9 @@ namespace mutils::net {
     private:
         void init();
         void monitorConnections();
+        void initializeFDs();
+        void verifyFDs();
+        void createNewClient();
 
     private:
         // Both
@@ -46,15 +43,15 @@ namespace mutils::net {
         int _phase{0};
         float _sumTime { 0 };
 
+        // Client
+        std::unique_ptr<AsyncSocket> _async;
+
         // Server
-        std::vector<int> _connections;
+        std::vector<std::unique_ptr<ITCPSocket>> _connections;
         std::unordered_map<int, AsyncSocket *> _connectionSocket;
         fd_set _rfds;
         std::thread _listenerThread;
         bool _serverShutdown { false };
-
-
-
     };
 }
 

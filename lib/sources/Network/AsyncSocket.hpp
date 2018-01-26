@@ -14,32 +14,28 @@
 #include "ISocket.hpp"
 #include "futils.hpp"
 #include "types.hpp"
-#include "../Serializer/Serializable.hpp"
+#include "Serializer/Serializable.hpp"
 
 namespace mutils::net {
 
-    struct Header {
-        std::uint16_t type;
-        std::size_t size;
-    };
-
-    struct BinaryData {
-        std::uint16_t type;
-        std::string _data;
+    enum Actions {
+        WRITE = 0,
+        READ
     };
 
     class AsyncSocket {
-    public:
-        explicit AsyncSocket(std::shared_ptr<mutils::net::ITCPSocket> const &);
-        ~AsyncSocket();
-
-        // Adds a socket to vector of sockets
+    private:
         void readContent();
         Header getHeader();
 
+        void writeContent();
 
-        template<typename T>
-        void write(SOCKET sock, Serializable<T> const &msg) {
+    public:
+        explicit AsyncSocket(ITCPSocket *);
+        ~AsyncSocket();
+
+
+        void write(SOCKET sock, PacketSend const &msg) {
             std::stringstream ss;
 
             ss << msg;
@@ -70,7 +66,7 @@ namespace mutils::net {
         bool hasReceived() { return _bufferRec.size() > 0; }
     private:
         std::unique_lock<std::mutex> _lk;
-        std::shared_ptr<mutils::net::ITCPSocket> _sock;
+        ITCPSocket *_sock;
 
         std::queue<std::pair<SOCKET, BinaryData>> _bufferSend;
         std::queue<std::pair<SOCKET, BinaryData>> _bufferRec;
@@ -78,10 +74,18 @@ namespace mutils::net {
         bool _stop { false };
     };
 
+    inline std::ostream &operator<<(std::ostream &os, PacketSend const &msg) {
+        os.write(reinterpret_cast<const char *>(&msg.hdr.type), sizeof(std::uint16_t));
+        os.write(reinterpret_cast<const char *>(&msg.hdr.size), sizeof(std::size_t));
+
+        os << msg.ser;
+        return os;
+    }
+
     extern std::mutex _mutexCv;
     extern std::vector<int> _fds;
     extern std::condition_variable _cv;
-    extern bool dataProcessed;
+    extern std::unordered_map<SOCKET, Actions> _action;
 }
 
 
