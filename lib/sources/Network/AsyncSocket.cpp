@@ -48,6 +48,8 @@ namespace mutils::net {
 
     AsyncSocket::~AsyncSocket() {
         _stop = true;
+        _fds.push_back(_sock->getSocket());
+        _action[_sock->getSocket()] = Actions::NONE;
         _clientThread.join();
     }
 

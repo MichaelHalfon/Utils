@@ -20,7 +20,8 @@ namespace mutils::net {
 
     enum Actions {
         WRITE = 0,
-        READ
+        READ,
+        NONE
     };
 
     class AsyncSocket {

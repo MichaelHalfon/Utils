@@ -13,6 +13,10 @@ namespace mutils::net {
         int port;
     };
 
+    struct handshake {
+
+    };
+
     struct error{
         std::string message;
     };
