@@ -6,7 +6,6 @@
 #include <cstdint>
 #include "Network.hpp"
 #include "events.hpp"
-#include "NetworkEvents.hpp"
 
 namespace mutils::net {
 
@@ -34,7 +33,10 @@ namespace mutils::net {
         FD_SET(conn->getSocket(), &_rfds);
         _connectionSocket[conn->getSocket()] = new AsyncSocket(conn);
         _connections.push_back(std::unique_ptr<ITCPSocket>(conn));
-//        events->send<newConnection>();
+
+        newConnection pkg;
+        pkg._id = conn->getSocket();
+        events->send<newConnection>(pkg);
     }
 
     void Network::verifyFDs() {

@@ -9,6 +9,11 @@
 
 namespace mutils::net {
 
+    struct MutilsPacket {
+        std::size_t _size;
+        std::string _data;
+    };
+
     struct Header {
         std::uint16_t type;
         std::size_t size;
@@ -20,6 +25,11 @@ namespace mutils::net {
     };
 
     struct Packet {
+        int clientId;
+        BinaryData data;
+    };
+
+    struct Response {
         int clientId;
         BinaryData data;
     };

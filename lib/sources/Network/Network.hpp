@@ -10,23 +10,14 @@
 #include "Socket.hpp"
 #include "ecs.hpp"
 #include "AsyncSocket.hpp"
+#include "NetworkEvents.hpp"
 
 namespace mutils::net {
-
-    struct test : public Serializable<test> {
-        test() : Serializable(&test::testVal) {}
-
-        std::string testVal {"salut lol !"};
-    };
 
     class Network : public futils::ISystem {
     public:
         explicit Network(bool isServer = false);
         void run(float) override;
-
-        // For Client only
-        void connect();
-        void setHostname(std::string const &) {}
 
     private:
         void init();
@@ -41,6 +32,17 @@ namespace mutils::net {
                     max = sock->getSocket();
             }
             return max;
+        }
+
+        template <typename T>
+        static std::string serializeClass(T pkg) {
+            static_assert(std::is_base_of<Serializable<T>, T>(), "Wrong class sent to function serializeClass()");
+
+            std::stringstream ss;
+
+            ss << pkg;
+
+	    return ss.str();
         }
 
     private:

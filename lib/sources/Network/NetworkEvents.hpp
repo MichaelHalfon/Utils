@@ -13,8 +13,9 @@ namespace mutils::net {
         int port;
     };
 
-    struct handshake {
-
+    struct newConnection {
+        SOCKET _id;
+        std::string _ipAddress;
     };
 
     struct error{
