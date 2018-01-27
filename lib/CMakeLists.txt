@@ -26,7 +26,7 @@ elseif (UNIX)
             sources/Network/UnixSockets.hpp
             sources/Network/UnixTCPSockets.cpp
             sources/Network/UnixUDPSockets.cpp
-            sources/Network/DataStructures.hpp)
+            sources/Network/DataStructures.hpp sources/Network/NetworkEvents.hpp)
 endif()
 
 include_directories(sources)

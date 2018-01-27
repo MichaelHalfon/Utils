@@ -34,6 +34,14 @@ namespace mutils::net {
         void initializeFDs();
         void verifyFDs();
         void createNewClient();
+        SOCKET getMax() {
+            SOCKET max = _tcpConnection->getSocket();
+            for (auto &sock : _connections) {
+                if (max < sock->getSocket())
+                    max = sock->getSocket();
+            }
+            return max;
+        }
 
     private:
         // Both
@@ -42,6 +50,9 @@ namespace mutils::net {
         bool _isServer;
         int _phase{0};
         float _sumTime { 0 };
+        bool _shutdown { false };
+        bool _connected { false };
+        fd_set _rfds;
 
         // Client
         std::unique_ptr<AsyncSocket> _async;
@@ -49,9 +60,7 @@ namespace mutils::net {
         // Server
         std::vector<std::unique_ptr<ITCPSocket>> _connections;
         std::unordered_map<int, AsyncSocket *> _connectionSocket;
-        fd_set _rfds;
         std::thread _listenerThread;
-        bool _serverShutdown { false };
     };
 }
 

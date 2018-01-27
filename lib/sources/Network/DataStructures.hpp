@@ -16,18 +16,12 @@ namespace mutils::net {
 
     struct BinaryData {
         Header hdr;
-        std::string _data;
+        std::string _dataStr;
     };
 
-    struct PacketRec {
+    struct Packet {
         int clientId;
         BinaryData data;
-    };
-
-    struct PacketSend {
-        Header hdr;
-        ISerializable *ser;
-
     };
 
     struct DataInfos {
@@ -37,7 +31,15 @@ namespace mutils::net {
         std::string data{};
     };
 
-    std::ostream &operator<<(std::ostream &, PacketSend const &);
+    inline std::ostream &operator<<(std::ostream &os, Packet const &msg) {
+        os.write(reinterpret_cast<const char *>(&msg.data.hdr.type), sizeof(std::uint16_t));
+        os.write(reinterpret_cast<const char *>(&msg.data.hdr.size), sizeof(std::size_t));
+        os.write(msg.data._dataStr.c_str(), msg.data.hdr.size);
+
+        return os;
+
+    }
+
 }
 
 #endif //FUTILS_DATASTRUCTURES_HPP

@@ -11,15 +11,18 @@ namespace mutils::net {
     std::condition_variable _cv;
     std::unordered_map<SOCKET, Actions> _action;
 
-    AsyncSocket::AsyncSocket(ITCPSocket *sock)  : _lk(_mutexCv), _sock(sock) {
+    AsyncSocket::AsyncSocket(ITCPSocket *sock)  : _sock(sock) {
         _clientThread = std::thread([this]() {
+            std::unique_lock<std::mutex> lk(_mutexCv);
             while (!_stop) {
 
-                _cv.wait(_lk, [this]() {
-                    for (auto it = _fds.begin(); it != _fds.end(); it++) {
-                        if (*it == _sock->getSocket()) {
-                            _fds.erase(it);
-                            return true;
+                _cv.wait(lk, [this]() {
+                    {
+                        for (auto it = _fds.begin(); it != _fds.end(); it++) {
+                            if (*it == _sock->getSocket()) {
+                                _fds.erase(it);
+                                return true;
+                            }
                         }
                     }
                     return false;
@@ -60,16 +63,18 @@ namespace mutils::net {
 
     void AsyncSocket::readContent() {
         Header hdr = getHeader();
-        DataInfos infos = _sock->receiveData(nullptr, hdr.size);
-        BinaryData data;
+        DataInfos infos = _sock->receiveData(nullptr, hdr.size); BinaryData data;
 
         data.hdr = hdr;
-        data._data = infos.data;
+        data._dataStr = infos.data;
         received(_sock->getSocket(), data);
     }
 
     void AsyncSocket::writeContent() {
-        std::cout << "TODO" << std::endl;
+        auto data = toSend();
+
+        auto size = _sock->sendData(data.second._dataStr.c_str(), data.second.hdr.size);
+        std::cout << "DATA SENT. SIZE: " << size << " BUT REAL SIZE: " << data.second.hdr.size << std::endl;
     }
 
 }

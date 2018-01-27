@@ -34,15 +34,16 @@ namespace mutils::net {
         explicit AsyncSocket(ITCPSocket *);
         ~AsyncSocket();
 
-
-        void write(SOCKET sock, PacketSend const &msg) {
+        void write(SOCKET sock, Packet const &msg) {
             std::stringstream ss;
 
             ss << msg;
 
             BinaryData data;
 
-            data._data = ss.str();
+            data._dataStr = ss.str();
+            data.hdr.type = msg.data.hdr.type;
+            data.hdr.size = msg.data.hdr.size + sizeof(std::size_t) + sizeof(std::uint16_t);
             _bufferSend.push(std::make_pair(sock, data));
         }
 
@@ -65,22 +66,14 @@ namespace mutils::net {
         bool hasToSend() { return _bufferSend.size() > 0; }
         bool hasReceived() { return _bufferRec.size() > 0; }
     private:
-        std::unique_lock<std::mutex> _lk;
         ITCPSocket *_sock;
+        std::unique_lock<std::mutex> _lk;
 
         std::queue<std::pair<SOCKET, BinaryData>> _bufferSend;
         std::queue<std::pair<SOCKET, BinaryData>> _bufferRec;
         std::thread _clientThread;
         bool _stop { false };
     };
-
-    inline std::ostream &operator<<(std::ostream &os, PacketSend const &msg) {
-        os.write(reinterpret_cast<const char *>(&msg.hdr.type), sizeof(std::uint16_t));
-        os.write(reinterpret_cast<const char *>(&msg.hdr.size), sizeof(std::size_t));
-
-        os << msg.ser;
-        return os;
-    }
 
     extern std::mutex _mutexCv;
     extern std::vector<int> _fds;
