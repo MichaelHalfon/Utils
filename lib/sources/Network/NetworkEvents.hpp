@@ -6,8 +6,11 @@
 #define FUTILS_NETWORKEVENTS_HPP
 
 #include <iostream>
+#include "Serializer/Serializable.hpp"
 
 namespace mutils::net {
+
+    static const std::uint32_t handshakeValue = 0xe3a4c32a;
 
     struct tryingToConnect {
         std::string hostname;
@@ -25,6 +28,13 @@ namespace mutils::net {
 
     struct error{
         std::string message;
+    };
+
+    struct handshake {
+        handshake() {}
+
+        std::uint16_t type { 0x0000 };
+        std::uint32_t value { handshakeValue };
     };
 }
 

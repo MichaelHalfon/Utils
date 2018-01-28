@@ -27,29 +27,47 @@ namespace mutils::net {
         }
     }
 
-    void Network::createNewClient() {
+    void Network::sendHandShake() {
+        handshake h;
+        std::stringstream ss;
+        MutilsPacket p;
+        std::size_t size = sizeof(std::uint32_t);
+
+        ss.write(reinterpret_cast<const char *>(&h.type), sizeof(std::uint16_t));
+        ss.write(reinterpret_cast<const char *>(&size), sizeof(std::size_t));
+        ss.write(reinterpret_cast<const char *>(&h.value), sizeof(std::uint32_t));
+        p._data = ss.str();
+        if (_isServer)
+            p._id = _connections.back()->getSocket();
+        else
+            p._id = _tcpConnection->getSocket();
+        p._size = sizeof(std::uint16_t) + sizeof(std::size_t) + sizeof(std::uint32_t);
+        std::cout << "[ " << name << " ]: " << "Sending handshake..." << std::endl;
+        events->send<MutilsPacket>(p);
+   }
+
+    void Network::newClientStartProcess() {
         auto conn = _tcpConnection->accept();
         std::cout << "new client!! ID: " << conn->getSocket() << std::endl;
         FD_SET(conn->getSocket(), &_rfds);
         _connectionSocket[conn->getSocket()] = std::unique_ptr<AsyncSocket>(new AsyncSocket(conn));
         _connections.push_back(std::unique_ptr<ITCPSocket>(conn));
-
-        newConnection pkg;
-        pkg._id = conn->getSocket();
-        events->send<newConnection>(pkg);
     }
 
     void Network::verifyFDs() {
         if (FD_ISSET(_tcpConnection->getSocket(), &_rfds))
-            createNewClient();
+            newClientStartProcess();
 
-        for (auto &sock : _connections) {
-            if (FD_ISSET(sock->getSocket(), &_rfds)) {
-                _fds.push_back(sock->getSocket());
-                _action[sock->getSocket()] = Actions::READ;
-                _cv.notify_all();
-//                std::unique_lock<std::mutex> lk(_mutexCv);
-//                _cv.wait(lk, [] {return dataProcessed;});
+        else {
+            for (auto &sock : _connections) {
+                if (FD_ISSET(sock->getSocket(), &_rfds)) {
+                    _fds.push_back(sock->getSocket());
+                    _action[sock->getSocket()] = Actions::READ;
+                    _cv.notify_all();
+                    std::unique_lock<std::mutex> lk(_mutexCv);
+                    _cv.wait(lk, [this] {return dataProcessed; });
+                    dataProcessed = false;
+                }
             }
         }
     }
@@ -81,10 +99,12 @@ namespace mutils::net {
             auto p = futils::Mediator::rebuild<MutilsPacket>(pkg);
 
             if (_isServer) {
-                _connectionSocket[p._id]->write(p);
+                return ;
+//                _connectionSocket[p._id]->write(p);
             }
             else
                 _async->write(p);
+            std::cout << "[" << name << "]: " << "JE PASSE ICI: " << p._id << std::endl;
             _fds.push_back(p._id);
             _action[p._id] = Actions::WRITE;
             _cv.notify_all();
@@ -106,6 +126,9 @@ namespace mutils::net {
             });
         }
         else {
+            _tcpConnection->connect("localhost", 4242);
+            sendHandShake();
+            _connected = true;
             addReaction<tryingToConnect>([this](futils::IMediatorPacket &pkg) {
                 auto msg = futils::Mediator::rebuild<tryingToConnect>(pkg);
 
@@ -136,22 +159,6 @@ namespace mutils::net {
                         }
                     }
                 }
-//                for (int i = 0; i < 3; i++) {
-//                    std::this_thread::sleep_for(std::chrono::seconds(2));
-//                    std::stringstream ss;
-//                    Packet pkg;
-//
-//                    pkg.data.hdr.size = sizeof(test);
-//                    pkg.data.hdr.type = 0x0001;
-//                    test ts;
-//
-//                    ss << ts;
-//                    pkg.data._dataStr = ss.str();
-//                    _async->write(_tcpConnection->getSocket(), pkg);
-//                    _fds.push_back(_tcpConnection->getSocket());
-//                    _action[_tcpConnection->getSocket()] = Actions::WRITE;
-//                    _cv.notify_all();
-//                }
             });
         }
     }
@@ -162,8 +169,20 @@ namespace mutils::net {
                 if (item.second->hasReceived()) {
                     PacketReceived pkg = item.second->read();
 
-                    std::cout << "data read: " << pkg._data << " from client: " << pkg._id << std::endl;
-                    events->send<PacketReceived>(pkg);
+                    if (pkg._type == 0x0000) {
+                        std::cout << "BON PAQUET" << std::endl;
+                        std::uint32_t const *value = reinterpret_cast<std::uint32_t const *>(pkg._data.c_str());
+                        if (*value == handshakeValue) {
+                            std::cout << "handshake confirmed !" << std::endl;
+                            newConnection msg;
+                            msg._id = pkg._id;
+                            events->send<newConnection>(msg);
+                        }
+                    }
+                    else {
+                        std::cout << "data read: " << pkg._data << " from client: " << pkg._id << std::endl;
+                        events->send<PacketReceived>(pkg);
+                    }
                 }
             }
         }
@@ -171,9 +190,9 @@ namespace mutils::net {
             if (_async->hasReceived()) {
                 PacketReceived pkg = _async->read();
 
-                pkg._id = _tcpConnection->getSocket();
+                    pkg._id = _tcpConnection->getSocket();
 
-                events->send<PacketReceived>(pkg);
+                    events->send<PacketReceived>(pkg);
             }
         }
     }

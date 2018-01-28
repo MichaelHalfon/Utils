@@ -71,6 +71,7 @@ namespace mutils::net {
     extern std::vector<int> _fds;
     extern std::condition_variable _cv;
     extern std::unordered_map<SOCKET, Actions> _action;
+    extern bool dataProcessed;
 }
 
 

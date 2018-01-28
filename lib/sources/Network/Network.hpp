@@ -23,7 +23,7 @@ namespace mutils::net {
         static std::string serializeClass(std::stringstream &ss, T pkg) {
             static_assert(std::is_base_of<Serializable<T>, T>(), "Wrong class sent to function serializeClass()");
 
-            ss.write(reinterpret_cast<const char *>(sizeof(pkg)), sizeof(std::size_t));
+            ss.write(reinterpret_cast<const char *>(sizeof(pkg) - sizeof(std::uint16_t)), sizeof(std::size_t));
             ss << pkg;
 
             return ss.str();
@@ -34,7 +34,8 @@ namespace mutils::net {
         void monitorConnections();
         void initializeFDs();
         void verifyFDs();
-        void createNewClient();
+        void newClientStartProcess();
+        void sendHandShake();
         SOCKET getMax() {
             SOCKET max = _tcpConnection->getSocket();
             for (auto &sock : _connections) {

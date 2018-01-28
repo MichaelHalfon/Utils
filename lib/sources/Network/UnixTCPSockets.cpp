@@ -107,6 +107,7 @@ namespace mutils::net::tcp {
 
     DataInfos UnixSockets::receiveData(char *msg, size_t length) const {
         char buffer[length];
+        std::cout << length << std::endl;
         ssize_t size = recv(_socket, ((msg == nullptr)? buffer : msg), length, 0);
 
         if (size <= 0)

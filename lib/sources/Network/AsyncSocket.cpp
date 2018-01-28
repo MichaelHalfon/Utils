@@ -10,6 +10,7 @@ namespace mutils::net {
     std::vector<int> _fds;
     std::condition_variable _cv;
     std::unordered_map<SOCKET, Actions> _action;
+    bool dataProcessed { false };
 
     AsyncSocket::AsyncSocket(ITCPSocket *sock)  : _sock(sock) {
         _clientThread = std::thread([this]() {
@@ -20,6 +21,7 @@ namespace mutils::net {
                     {
                         for (auto it = _fds.begin(); it != _fds.end(); it++) {
                             if (*it == _sock->getSocket()) {
+                                std::cout << "J'ai une action a faire dans la socket: " << _sock->getSocket() << std::endl;
                                 _fds.erase(it);
                                 return true;
                             }
@@ -40,8 +42,8 @@ namespace mutils::net {
                     default:
                         break ;
                 }
-//                _cv.notify_all();
-//                analyzeSockets();
+                dataProcessed = true;
+                _cv.notify_all();
             }
         });
     }
@@ -73,14 +75,15 @@ namespace mutils::net {
         data._data = infos.data;
         data._id = infos.senderId;
 
+        std::cout << "[" << _sock->getSocket() << "]: " << "DATA RECEIVED : " << data._data << std::endl;
         received(data);
     }
 
     void AsyncSocket::writeContent() {
         auto data = toSend();
 
-        auto size = _sock->sendData(data._data.c_str(), data._size);
-        std::cout << "DATA SENT. SIZE: " << size << " BUT REAL SIZE: " << data._size << std::endl;
+        std::cout << "[" << _sock->getSocket() << "]: " << "DATA SENT: " << data._data << std::endl;
+        _sock->sendData(data._data.c_str(), data._size);
     }
 
 }
