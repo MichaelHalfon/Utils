@@ -19,6 +19,19 @@ namespace mutils::net {
         }
     }
 
+    void Network::waitEndProcess() {
+        std::unique_lock<std::mutex> lk(_mutexCv);
+        _cv.wait(lk, [this] {return _process._isFinished; });
+        _process._isFinished = false;
+//        if (_process.status != Status::ALL_GOOD) {
+//            disconnection d;
+//
+//            d._id = _process.id;
+//            std::cout << "Problem during the processing of socket: " << _process.id << ". Closing connection." << std::endl;
+//            events->send<disconnection>(d);
+//        }
+    }
+
     void Network::initializeFDs() {
         FD_ZERO(&_rfds);
         FD_SET(_tcpConnection->getSocket(), &_rfds);
@@ -64,9 +77,7 @@ namespace mutils::net {
                     _fds.push_back(sock->getSocket());
                     _action[sock->getSocket()] = Actions::READ;
                     _cv.notify_all();
-                    std::unique_lock<std::mutex> lk(_mutexCv);
-                    _cv.wait(lk, [this] {return dataProcessed; });
-                    dataProcessed = false;
+                    waitEndProcess();
                 }
             }
         }
@@ -81,15 +92,19 @@ namespace mutils::net {
             entityManager->removeSystem(name);
         });
 
+        //TODO: A MODIFIER ABSOLUMENT.
         addReaction<disconnection>([this](futils::IMediatorPacket &pkg) {
             auto p = futils::Mediator::rebuild<disconnection>(pkg);
             if (_isServer) {
-                _connectionSocket.erase(p._id);
                 auto it = std::find_if(_connections.begin(), _connections.end(), [&p](std::unique_ptr<ITCPSocket> &conn) {
                     return conn->getSocket() == p._id;
                 });
-                if (it != _connections.end())
+                if (it != _connections.end()) {
+                    (*it)->disconnect();
+                    _connectionSocket.erase(p._id);
+                    std::cout << "erasing connection: " << (*it)->getSocket() << std::endl;
                     _connections.erase(it);
+                }
             }
             else
                 _tcpConnection->disconnect();
@@ -99,14 +114,14 @@ namespace mutils::net {
             auto p = futils::Mediator::rebuild<MutilsPacket>(pkg);
 
             if (_isServer) {
-                return ;
-//                _connectionSocket[p._id]->write(p);
+                _connectionSocket[p._id]->write(p);
             }
             else
                 _async->write(p);
             _fds.push_back(p._id);
             _action[p._id] = Actions::WRITE;
             _cv.notify_all();
+            waitEndProcess();
         });
 
         if (_isServer) {
@@ -154,6 +169,7 @@ namespace mutils::net {
                             _fds.push_back(_tcpConnection->getSocket());
                             _action[_tcpConnection->getSocket()] = Actions::READ;
                             _cv.notify_all();
+                            waitEndProcess();
                         }
                     }
                 }
@@ -168,7 +184,6 @@ namespace mutils::net {
                     PacketReceived pkg = item.second->read();
 
                     if (pkg._type == 0x0000) {
-                        std::cout << "BON PAQUET" << std::endl;
                         std::uint32_t const *value = reinterpret_cast<std::uint32_t const *>(pkg._data.c_str());
                         if (*value == handshakeValue) {
                             std::cout << "handshake confirmed !" << std::endl;

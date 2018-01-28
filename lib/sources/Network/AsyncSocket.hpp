@@ -51,7 +51,7 @@ namespace mutils::net {
 
         MutilsPacket toSend() {
             auto ret = _bufferSend.front();
-            _bufferRec.pop();
+            _bufferSend.pop();
             return ret;
         }
 
@@ -71,7 +71,7 @@ namespace mutils::net {
     extern std::vector<int> _fds;
     extern std::condition_variable _cv;
     extern std::unordered_map<SOCKET, Actions> _action;
-    extern bool dataProcessed;
+    extern dataProcessed _process;
 }
 
 

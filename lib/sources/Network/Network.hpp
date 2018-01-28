@@ -36,6 +36,7 @@ namespace mutils::net {
         void verifyFDs();
         void newClientStartProcess();
         void sendHandShake();
+        void waitEndProcess();
         SOCKET getMax() {
             SOCKET max = _tcpConnection->getSocket();
             for (auto &sock : _connections) {

@@ -9,6 +9,12 @@
 
 namespace mutils::net {
 
+    enum Status {
+        ALL_GOOD = 0,
+        SOCKET_CLOSE = 1,
+        OTHER_ERROR = 2
+    };
+
     struct MutilsPacket {
         int _id;
         std::size_t _size;
@@ -35,6 +41,11 @@ namespace mutils::net {
         std::string data{};
     };
 
+    struct dataProcessed {
+        bool _isFinished { false };
+        int id { -1 };
+        Status status { Status::ALL_GOOD };
+    };
 }
 
 #endif //FUTILS_DATASTRUCTURES_HPP
