@@ -65,18 +65,22 @@ namespace mutils::net {
 
     void AsyncSocket::readContent() {
         Header hdr = getHeader();
-        DataInfos infos = _sock->receiveData(nullptr, hdr.size); BinaryData data;
+        DataInfos infos = _sock->receiveData(nullptr, hdr.size);
+        PacketReceived data;
 
-        data.hdr = hdr;
-        data._dataStr = infos.data;
-        received(_sock->getSocket(), data);
+        data._size = hdr.size;
+        data._type = hdr.type;
+        data._data = infos.data;
+        data._id = infos.senderId;
+
+        received(data);
     }
 
     void AsyncSocket::writeContent() {
         auto data = toSend();
 
-        auto size = _sock->sendData(data.second._dataStr.c_str(), data.second.hdr.size);
-        std::cout << "DATA SENT. SIZE: " << size << " BUT REAL SIZE: " << data.second.hdr.size << std::endl;
+        auto size = _sock->sendData(data._data.c_str(), data._size);
+        std::cout << "DATA SENT. SIZE: " << size << " BUT REAL SIZE: " << data._size << std::endl;
     }
 
 }

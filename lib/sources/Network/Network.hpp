@@ -19,6 +19,16 @@ namespace mutils::net {
         explicit Network(bool isServer = false);
         void run(float) override;
 
+        template <typename T>
+        static std::string serializeClass(std::stringstream &ss, T pkg) {
+            static_assert(std::is_base_of<Serializable<T>, T>(), "Wrong class sent to function serializeClass()");
+
+            ss.write(reinterpret_cast<const char *>(sizeof(pkg)), sizeof(std::size_t));
+            ss << pkg;
+
+            return ss.str();
+        }
+
     private:
         void init();
         void monitorConnections();
@@ -34,16 +44,6 @@ namespace mutils::net {
             return max;
         }
 
-        template <typename T>
-        static std::string serializeClass(T pkg) {
-            static_assert(std::is_base_of<Serializable<T>, T>(), "Wrong class sent to function serializeClass()");
-
-            std::stringstream ss;
-
-            ss << pkg;
-
-	    return ss.str();
-        }
 
     private:
         // Both

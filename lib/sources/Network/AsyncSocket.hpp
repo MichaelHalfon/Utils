@@ -35,30 +35,21 @@ namespace mutils::net {
         explicit AsyncSocket(ITCPSocket *);
         ~AsyncSocket();
 
-        void write(SOCKET sock, Packet const &msg) {
-            std::stringstream ss;
-
-            ss << msg;
-
-            BinaryData data;
-
-            data._dataStr = ss.str();
-            data.hdr.type = msg.data.hdr.type;
-            data.hdr.size = msg.data.hdr.size + sizeof(std::size_t) + sizeof(std::uint16_t);
-            _bufferSend.push(std::make_pair(sock, data));
+        void write(MutilsPacket const &msg) {
+            _bufferSend.push(msg);
         }
 
-        void received(SOCKET sock, BinaryData const &msg) {
-            _bufferRec.push(std::make_pair(sock, msg));
+        void received(PacketReceived const &msg) {
+            _bufferRec.push(msg);
         }
 
-        std::pair<SOCKET, BinaryData> read() {
+        PacketReceived read() {
             auto ret = _bufferRec.front();
             _bufferRec.pop();
             return ret;
         }
 
-        std::pair<SOCKET, BinaryData> toSend() {
+        MutilsPacket toSend() {
             auto ret = _bufferSend.front();
             _bufferRec.pop();
             return ret;
@@ -70,8 +61,8 @@ namespace mutils::net {
         ITCPSocket *_sock;
         std::unique_lock<std::mutex> _lk;
 
-        std::queue<std::pair<SOCKET, BinaryData>> _bufferSend;
-        std::queue<std::pair<SOCKET, BinaryData>> _bufferRec;
+        std::queue<MutilsPacket> _bufferSend;
+        std::queue<PacketReceived> _bufferRec;
         std::thread _clientThread;
         bool _stop { false };
     };

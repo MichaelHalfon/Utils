@@ -63,6 +63,14 @@ namespace mutils::net {
             entityManager->removeSystem(name);
         });
 
+        addReaction<MutilsPacket>([this](futils::IMediatorPacket &pkg) {
+            auto p = futils::Mediator::rebuild<MutilsPacket>(pkg);
+
+            if (_isServer) {
+//                _connectionSocket[p._id]->write(p._id)
+            }
+        });
+
         if (_isServer) {
             _tcpConnection->bind(4242);
             _tcpConnection->listen();
@@ -133,27 +141,23 @@ namespace mutils::net {
         if (_isServer) {
             for (auto &item : _connectionSocket) {
                 if (item.second->hasReceived()) {
-                    Packet pkg;
+                    PacketReceived pkg = item.second->read();
 
-                    std::pair<SOCKET, BinaryData> receivedElem = item.second->read();
-                    pkg.clientId = receivedElem.first;
-                    pkg.data = receivedElem.second;
-
-//                    std::cout << "data read: " << pkg.data._dataStr.c_str() << " from client: " << item.first
-//                              << std::endl;
-                    events->send<Packet>(pkg);
+                    std::cout << "data read: " << pkg._data << " from client: " << pkg._id << std::endl;
+                    events->send<PacketReceived>(pkg);
                 }
             }
         }
         else {
             if (_async->hasReceived()) {
-                Packet pkg;
+                PacketReceived pkg;
+                MutilsPacket receivedElem = _async->read();
 
-                std::pair<SOCKET, BinaryData> receivedElem = _async->read();
-                pkg.clientId = receivedElem.first;
-                pkg.data = receivedElem.second;
+                pkg._id = _tcpConnection->getSocket();
+                pkg._data = receivedElem._data;
+                pkg._size = receivedElem._size;
 
-                events->send<Packet>(pkg);
+                events->send<PacketReceived>(pkg);
             }
         }
     }
