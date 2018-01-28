@@ -55,14 +55,14 @@ namespace mutils::net {
         bool _shutdown { false };
         bool _connected { false };
         fd_set _rfds;
+        std::thread _connectionThread;
 
         // Client
         std::unique_ptr<AsyncSocket> _async;
 
         // Server
         std::vector<std::unique_ptr<ITCPSocket>> _connections;
-        std::unordered_map<int, AsyncSocket *> _connectionSocket;
-        std::thread _listenerThread;
+        std::unordered_map<int, std::unique_ptr<AsyncSocket>> _connectionSocket;
     };
 }
 

@@ -31,7 +31,7 @@ namespace mutils::net {
         auto conn = _tcpConnection->accept();
         std::cout << "new client!! ID: " << conn->getSocket() << std::endl;
         FD_SET(conn->getSocket(), &_rfds);
-        _connectionSocket[conn->getSocket()] = new AsyncSocket(conn);
+        _connectionSocket[conn->getSocket()] = std::unique_ptr<AsyncSocket>(new AsyncSocket(conn));
         _connections.push_back(std::unique_ptr<ITCPSocket>(conn));
 
         newConnection pkg;
@@ -59,22 +59,41 @@ namespace mutils::net {
 
         addReaction<fender::events::Shutdown>([this](futils::IMediatorPacket &) {
             _shutdown = true;
-            _listenerThread.join();
+            _connectionThread.join();
             entityManager->removeSystem(name);
+        });
+
+        addReaction<disconnection>([this](futils::IMediatorPacket &pkg) {
+            auto p = futils::Mediator::rebuild<disconnection>(pkg);
+            if (_isServer) {
+                _connectionSocket.erase(p._id);
+                auto it = std::find_if(_connections.begin(), _connections.end(), [&p](std::unique_ptr<ITCPSocket> &conn) {
+                    return conn->getSocket() == p._id;
+                });
+                if (it != _connections.end())
+                    _connections.erase(it);
+            }
+            else
+                _tcpConnection->disconnect();
         });
 
         addReaction<MutilsPacket>([this](futils::IMediatorPacket &pkg) {
             auto p = futils::Mediator::rebuild<MutilsPacket>(pkg);
 
             if (_isServer) {
-//                _connectionSocket[p._id]->write(p._id)
+                _connectionSocket[p._id]->write(p);
             }
+            else
+                _async->write(p);
+            _fds.push_back(p._id);
+            _action[p._id] = Actions::WRITE;
+            _cv.notify_all();
         });
 
         if (_isServer) {
             _tcpConnection->bind(4242);
             _tcpConnection->listen();
-            _listenerThread = std::thread([this]() {
+            _connectionThread = std::thread([this]() {
                 while (!_shutdown) {
                     timeval t;
 
@@ -100,7 +119,7 @@ namespace mutils::net {
                     events->send<error>(err);
                 }
             });
-            _listenerThread = std::thread([this]() {
+            _connectionThread = std::thread([this]() {
                 while (!_shutdown) {
                     if (_connected) {
                         timeval t;
@@ -150,12 +169,9 @@ namespace mutils::net {
         }
         else {
             if (_async->hasReceived()) {
-                PacketReceived pkg;
-                MutilsPacket receivedElem = _async->read();
+                PacketReceived pkg = _async->read();
 
                 pkg._id = _tcpConnection->getSocket();
-                pkg._data = receivedElem._data;
-                pkg._size = receivedElem._size;
 
                 events->send<PacketReceived>(pkg);
             }

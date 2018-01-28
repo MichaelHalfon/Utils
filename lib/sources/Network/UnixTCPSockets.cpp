@@ -8,7 +8,6 @@
 #include <cstring>
 #include "UnixSockets.hpp"
 
-//TODO: Modification d'AsyncSocket pour que ce soit des selects gérant X clients.
 namespace mutils::net::tcp {
 
     UnixSockets::UnixSockets() {

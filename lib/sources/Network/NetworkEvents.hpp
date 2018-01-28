@@ -8,6 +8,7 @@
 #include <iostream>
 
 namespace mutils::net {
+
     struct tryingToConnect {
         std::string hostname;
         int port;
@@ -16,6 +17,10 @@ namespace mutils::net {
     struct newConnection {
         SOCKET _id;
         std::string _ipAddress;
+    };
+
+    struct disconnection {
+        SOCKET _id;
     };
 
     struct error{
