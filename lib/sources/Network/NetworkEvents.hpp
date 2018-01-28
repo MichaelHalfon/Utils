@@ -7,6 +7,7 @@
 
 #include <iostream>
 #include "Serializer/Serializable.hpp"
+#include "ISocket.hpp"
 
 namespace mutils::net {
 
