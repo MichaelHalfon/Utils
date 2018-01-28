@@ -104,7 +104,6 @@ namespace mutils::net {
             }
             else
                 _async->write(p);
-            std::cout << "[" << name << "]: " << "JE PASSE ICI: " << p._id << std::endl;
             _fds.push_back(p._id);
             _action[p._id] = Actions::WRITE;
             _cv.notify_all();
@@ -126,14 +125,13 @@ namespace mutils::net {
             });
         }
         else {
-            _tcpConnection->connect("localhost", 4242);
-            sendHandShake();
-            _connected = true;
             addReaction<tryingToConnect>([this](futils::IMediatorPacket &pkg) {
                 auto msg = futils::Mediator::rebuild<tryingToConnect>(pkg);
 
                 try {
                     _tcpConnection->connect(msg.hostname, msg.port);
+                    sendHandShake();
+                    _connected = true;
                 }
                 catch (std::exception const &e) {
                     error err;

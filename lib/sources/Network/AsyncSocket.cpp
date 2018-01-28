@@ -52,6 +52,7 @@ namespace mutils::net {
         _stop = true;
         _fds.push_back(_sock->getSocket());
         _action[_sock->getSocket()] = Actions::NONE;
+        _cv.notify_all();
         _clientThread.join();
     }
 
