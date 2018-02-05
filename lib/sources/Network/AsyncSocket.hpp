@@ -72,7 +72,7 @@ namespace mutils::net {
     extern std::condition_variable _cv;
     extern std::unordered_map<SOCKET, Actions> _action;
     extern dataProcessed _process;
+    extern bool _notified;
 }
-
 
 #endif //NETWORK_ASYNCSOCKET_HPP

@@ -15,21 +15,24 @@ namespace mutils::net {
             name = "Server";
         else {
             name = "Client";
-            _async = std::unique_ptr<AsyncSocket>(new AsyncSocket(_tcpConnection.get()));
+            _async = new AsyncSocket(_tcpConnection.get());
         }
     }
 
     void Network::waitEndProcess() {
-        std::unique_lock<std::mutex> lk(_mutexCv);
-        _cv.wait(lk, [this] {return _process._isFinished; });
-        _process._isFinished = false;
-//        if (_process.status != Status::ALL_GOOD) {
-//            disconnection d;
-//
-//            d._id = _process.id;
-//            std::cout << "Problem during the processing of socket: " << _process.id << ". Closing connection." << std::endl;
-//            events->send<disconnection>(d);
-//        }
+        {
+            std::unique_lock<std::mutex> lk(_mutexCv);
+            _cv.wait(lk, [this] { return _process._isFinished; });
+            _process._isFinished = false;
+        }
+        if (_process.status != Status::ALL_GOOD) {
+            disconnection d;
+
+            d._id = _process.id;
+            std::cerr << "Problem during the processing of socket: " << _process.id << ". Closing connection." << std::endl;
+            events->send<disconnection>(d);
+        }
+        _process.status = Status::ALL_GOOD;
     }
 
     void Network::initializeFDs() {
@@ -72,12 +75,16 @@ namespace mutils::net {
             newClientStartProcess();
 
         else {
+            std::size_t size = _connections.size();
             for (auto &sock : _connections) {
                 if (FD_ISSET(sock->getSocket(), &_rfds)) {
                     _fds.push_back(sock->getSocket());
                     _action[sock->getSocket()] = Actions::READ;
+                    _notified = true;
                     _cv.notify_all();
                     waitEndProcess();
+                    if (size != _connections.size())
+                        break ;
                 }
             }
         }
@@ -89,25 +96,33 @@ namespace mutils::net {
         addReaction<fender::events::Shutdown>([this](futils::IMediatorPacket &) {
             _shutdown = true;
             _connectionThread.join();
+            if (!_isServer) {
+                delete _async;
+            }
             entityManager->removeSystem(name);
         });
 
         //TODO: A MODIFIER ABSOLUMENT.
         addReaction<disconnection>([this](futils::IMediatorPacket &pkg) {
             auto p = futils::Mediator::rebuild<disconnection>(pkg);
+
             if (_isServer) {
                 auto it = std::find_if(_connections.begin(), _connections.end(), [&p](std::unique_ptr<ITCPSocket> &conn) {
                     return conn->getSocket() == p._id;
                 });
                 if (it != _connections.end()) {
-                    (*it)->disconnect();
                     _connectionSocket.erase(p._id);
                     std::cout << "erasing connection: " << (*it)->getSocket() << std::endl;
                     _connections.erase(it);
+                    std::cout << "Connection erased !" << std::endl;
                 }
             }
-            else
+            else {
+                delete _async;
+                _async = nullptr;
                 _tcpConnection->disconnect();
+                _connected = false;
+            }
         });
 
         addReaction<MutilsPacket>([this](futils::IMediatorPacket &pkg) {
@@ -120,6 +135,7 @@ namespace mutils::net {
                 _async->write(p);
             _fds.push_back(p._id);
             _action[p._id] = Actions::WRITE;
+            _notified = true;
             _cv.notify_all();
             waitEndProcess();
         });
@@ -168,6 +184,7 @@ namespace mutils::net {
                         if (FD_ISSET(_tcpConnection->getSocket(), &_rfds)) {
                             _fds.push_back(_tcpConnection->getSocket());
                             _action[_tcpConnection->getSocket()] = Actions::READ;
+                            _notified = true;
                             _cv.notify_all();
                             waitEndProcess();
                         }

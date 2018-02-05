@@ -50,7 +50,7 @@ namespace mutils::net {
         SOCKET getSocket() const { return _socket; };
 
     public:
-        SOCKET _socket;
+        SOCKET _socket { -1 };
     };
 
     class ITCPSocket : public ISocket {

@@ -109,14 +109,14 @@ namespace mutils::net::tcp {
         char buffer[length];
         ssize_t size = recv(_socket, ((msg == nullptr)? buffer : msg), length, 0);
 
-        if (size <= 0)
+        if (size != length)
             return { };
 
         DataInfos info;
 
         info.senderId = _socket;
         info.size = size;
-        info.data = std::string(((msg == nullptr)? buffer : msg));
+        info.data = std::string(((msg == nullptr)? buffer : msg), length);
         return info;
     }
 }

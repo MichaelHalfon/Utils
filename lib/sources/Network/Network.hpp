@@ -34,6 +34,7 @@ namespace mutils::net {
         void monitorConnections();
         void initializeFDs();
         void verifyFDs();
+        void FilterFDs();
         void newClientStartProcess();
         void sendHandShake();
         void waitEndProcess();
@@ -60,11 +61,12 @@ namespace mutils::net {
         std::thread _connectionThread;
 
         // Client
-        std::unique_ptr<AsyncSocket> _async;
+         AsyncSocket *_async;
 
         // Server
         std::vector<std::unique_ptr<ITCPSocket>> _connections;
         std::unordered_map<int, std::unique_ptr<AsyncSocket>> _connectionSocket;
+
     };
 }
 

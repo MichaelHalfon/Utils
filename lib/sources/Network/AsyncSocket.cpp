@@ -11,29 +11,28 @@ namespace mutils::net {
     std::condition_variable _cv;
     std::unordered_map<SOCKET, Actions> _action;
     dataProcessed _process { };
+    bool _notified { false };
 
     AsyncSocket::AsyncSocket(ITCPSocket *sock)  : _sock(sock) {
         _clientThread = std::thread([this]() {
             std::unique_lock<std::mutex> lk(_mutexCv);
             while (!_stop) {
-                _cv.wait(lk, [this]() {
-                    {
-//                        std::cout << "I AM NOTIFIED" << std::endl;
-                        for (auto it = _fds.begin(); it != _fds.end(); it++) {
-                            if (*it == _sock->getSocket()) {
-//                                std::cout << "J'ai une action a faire dans la socket: " << _sock->getSocket() << std::endl;
-                                _fds.erase(it);
-                                return true;
+                while (!_notified) {
+                    _cv.wait(lk, [this]() {
+                        {
+                            for (auto it = _fds.begin(); it != _fds.end(); ++it) {
+                                if (*it == _sock->getSocket()) {
+                                    _fds.erase(it);
+                                    return true;
+                                } else if (*it == -1)
+                                    return true;
                             }
-                            else if (*it == -1)
-                                return true;
                         }
-                    }
-                    return false;
-                });
+                        return false;
+                    });
+                }
 
-                if (_sock->getSocket() == -1)
-                    break ;
+                _notified = false;
 
                 switch (_action[_sock->getSocket()]) {
                     case Actions::READ:
@@ -55,13 +54,12 @@ namespace mutils::net {
     }
 
     AsyncSocket::~AsyncSocket() {
-//        std::cout << "AsyncSocket destructor" << std::endl;
         _stop = true;
         _fds.push_back(_sock->getSocket());
         _action[_sock->getSocket()] = Actions::NONE;
+        _notified = true;
         _cv.notify_all();
         _clientThread.join();
-//        std::cout << "ASYNCSOCKET JOINED" << std::endl;
     }
 
     Header AsyncSocket::getHeader() {
